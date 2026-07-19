@@ -65,9 +65,10 @@
             </div>
             <div class="col-md-6">{{ form.tipo_cliente.label_tag }} {{ form.tipo_cliente }}</div>
             <div class="col-md-6">{{ form.identificacion.label_tag }} {{ form.identificacion }}</div>
+            <div class="col-md-6">{{ form.id_provincia.label_tag }} {{ form.id_provincia }}</div>
             <div class="col-md-6">{{ form.id_ciudad.label_tag }} {{ form.id_ciudad }}</div>
             <div class="col-md-6">{{ form.telefono.label_tag }} {{ form.telefono }}</div>
-            <div class="col-12">
+            <div class="col-md-6">
               {{ form.email.label_tag }}
               {{ form.email }}
               {% if form.email.errors %}<div class="text-danger" style="font-size:.8rem;">{{ form.email.errors|striptags }}</div>{% endif %}
@@ -85,6 +86,30 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var provSel = document.getElementById('id_id_provincia');
+  var citySel = document.getElementById('id_id_ciudad');
+  if (provSel && citySel) {
+    var todasLasOpciones = Array.prototype.slice.call(citySel.options);
+    var filtrarCiudades = function () {
+      var provincia = provSel.value;
+      var actual = citySel.value;
+      citySel.innerHTML = '';
+      todasLasOpciones.forEach(function (opcion) {
+        var provinciaOpcion = opcion.getAttribute('data-provincia');
+        if (!opcion.value || !provincia || provinciaOpcion === provincia) {
+          citySel.appendChild(opcion.cloneNode(true));
+        }
+      });
+      var sigueValida = Array.prototype.some.call(citySel.options, function (o) { return o.value === actual; });
+      citySel.value = sigueValida ? actual : '';
+    };
+    provSel.addEventListener('change', filtrarCiudades);
+    filtrarCiudades();
+  }
+});
+</script>
 {% if editing or form.errors %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {

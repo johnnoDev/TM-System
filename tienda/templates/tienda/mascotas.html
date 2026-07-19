@@ -66,8 +66,9 @@
               {% if form.nombre.errors %}<div class="text-danger" style="font-size:.8rem;">{{ form.nombre.errors|striptags }}</div>{% endif %}
             </div>
             <div class="col-md-5">{{ form.sexo.label_tag }} {{ form.sexo }}</div>
+            <div class="col-md-5">{{ form.id_especie.label_tag }} {{ form.id_especie }}</div>
             <div class="col-md-7">{{ form.id_raza.label_tag }} {{ form.id_raza }}</div>
-            <div class="col-md-5">{{ form.talla.label_tag }} {{ form.talla }}</div>
+            <div class="col-md-6">{{ form.talla.label_tag }} {{ form.talla }}</div>
             <div class="col-md-6">{{ form.fecha_nacimiento.label_tag }} {{ form.fecha_nacimiento }}</div>
             <div class="col-md-6">{{ form.id_cliente.label_tag }} {{ form.id_cliente }}</div>
           </div>
@@ -83,6 +84,30 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var especieSel = document.getElementById('id_id_especie');
+  var razaSel = document.getElementById('id_id_raza');
+  if (especieSel && razaSel) {
+    var todasLasOpciones = Array.prototype.slice.call(razaSel.options);
+    var filtrarRazas = function () {
+      var especie = especieSel.value;
+      var actual = razaSel.value;
+      razaSel.innerHTML = '';
+      todasLasOpciones.forEach(function (opcion) {
+        var especieOpcion = opcion.getAttribute('data-especie');
+        if (!opcion.value || !especie || especieOpcion === especie) {
+          razaSel.appendChild(opcion.cloneNode(true));
+        }
+      });
+      var sigueValida = Array.prototype.some.call(razaSel.options, function (o) { return o.value === actual; });
+      razaSel.value = sigueValida ? actual : '';
+    };
+    especieSel.addEventListener('change', filtrarRazas);
+    filtrarRazas();
+  }
+});
+</script>
 {% if editing or form.errors %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
