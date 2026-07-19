@@ -1,0 +1,26 @@
+from django.contrib import admin
+
+from . import models
+
+admin.site.register(models.TmMCliente)
+admin.site.register(models.TmMMascota)
+admin.site.register(models.TmMProducto)
+admin.site.register(models.TmMProveedor)
+admin.site.register(models.TmMServicio)
+admin.site.register(models.TmMUsuario)
+admin.site.register(models.TmPCargo)
+admin.site.register(models.TmPCategoria)
+admin.site.register(models.TmPCiudad)
+admin.site.register(models.TmPEspecie)
+admin.site.register(models.TmPProvincia)
+admin.site.register(models.TmPRaza)
+admin.site.register(models.TmPTarifaservicio)
+admin.site.register(models.TmPTipopago)
+admin.site.register(models.TmTCompra)
+admin.site.register(models.TmTDetallecompra)
+admin.site.register(models.TmTDetallereserva)
+admin.site.register(models.TmTDetalleventa)
+admin.site.register(models.TmTFactura)
+admin.site.register(models.TmTHorario)
+admin.site.register(models.TmTReserva)
+admin.site.register(models.TmTVenta)
