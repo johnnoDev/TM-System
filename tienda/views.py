@@ -181,17 +181,13 @@ def citas(request):
             servicio = form.cleaned_data['id_servicio']
             fecha = form.cleaned_data['fecha_hora_reserva']
 
-            last_reserva = TmTReserva.objects.order_by('-id_reserva').first()
             reserva = TmTReserva.objects.create(
-                id_reserva=(last_reserva.id_reserva + 1) if last_reserva else 1,
                 id_cliente=mascota.id_cliente,
                 fecha_hora_reserva=fecha,
                 estado='Pendiente',
             )
 
-            last_detalle = TmTDetallereserva.objects.order_by('-id_detalle_reserva').first()
             TmTDetallereserva.objects.create(
-                id_detalle_reserva=(last_detalle.id_detalle_reserva + 1) if last_detalle else 1,
                 id_reserva=reserva,
                 id_mascota=mascota,
                 id_servicio=servicio,

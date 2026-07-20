@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import TmMCliente, TmMMascota, TmMServicio, TmPCiudad, TmPEspecie, TmPProvincia, TmPRaza
+from .models import TmMCliente, TmMMascota, TmMServicio, TmPCiudad, TmPEspecie, TmPProvincia, TmPRaza, TmPTipocliente
 
 
 class CiudadSelect(forms.Select):
@@ -36,9 +36,11 @@ class RazaSelect(forms.Select):
 
 
 class ClienteForm(forms.ModelForm):
-    TIPO_CHOICES = [('', '---------'), ('Natural', 'Natural'), ('Jurídico', 'Jurídico')]
-
-    tipo_cliente = forms.ChoiceField(choices=TIPO_CHOICES, required=False, label='Tipo de cliente')
+    id_tipo_cliente = forms.ModelChoiceField(
+        queryset=TmPTipocliente.objects.order_by('nombre'),
+        required=False,
+        label='Tipo de cliente',
+    )
     id_provincia = forms.ModelChoiceField(
         queryset=TmPProvincia.objects.order_by('nombre_provincia'),
         required=False,
@@ -47,7 +49,7 @@ class ClienteForm(forms.ModelForm):
 
     class Meta:
         model = TmMCliente
-        fields = ['nombre_razon_social', 'tipo_cliente', 'identificacion', 'id_ciudad', 'telefono', 'email']
+        fields = ['nombre_razon_social', 'id_tipo_cliente', 'identificacion', 'id_ciudad', 'telefono', 'email']
         labels = {
             'nombre_razon_social': 'Nombre completo',
             'identificacion': 'Identificación',
@@ -83,15 +85,6 @@ class ClienteForm(forms.ModelForm):
                 field.widget.attrs['class'] = (css + ' form-select').strip()
             else:
                 field.widget.attrs['class'] = (css + ' form-control').strip()
-
-    def save(self, commit=True):
-        obj = super().save(commit=False)
-        if obj.pk is None:
-            last = TmMCliente.objects.order_by('-id_cliente').first()
-            obj.id_cliente = (last.id_cliente + 1) if last else 1
-        if commit:
-            obj.save()
-        return obj
 
 
 class MascotaForm(forms.ModelForm):
@@ -144,15 +137,6 @@ class MascotaForm(forms.ModelForm):
                 field.widget.attrs['class'] = (css + ' form-select').strip()
             else:
                 field.widget.attrs['class'] = (css + ' form-control').strip()
-
-    def save(self, commit=True):
-        obj = super().save(commit=False)
-        if obj.pk is None:
-            last = TmMMascota.objects.order_by('-id_mascota').first()
-            obj.id_mascota = (last.id_mascota + 1) if last else 1
-        if commit:
-            obj.save()
-        return obj
 
 
 class CitaForm(forms.Form):

@@ -24,7 +24,7 @@
       <tr>
         <td style="color:#a9b8b5;font-weight:700;">#{{ c.id_cliente }}</td>
         <td><div style="display:flex;align-items:center;gap:12px;"><div class="gr-avatar" style="background:{{ c.color }};font-size:.8rem;">{{ c.iniciales }}</div><span style="font-weight:700;color:var(--ink);">{{ c.nombre_razon_social|default:"—" }}</span></div></td>
-        <td style="color:#5a6f6b;">{{ c.tipo_cliente|default:"—" }}</td>
+        <td style="color:#5a6f6b;">{{ c.id_tipo_cliente.nombre|default:"—" }}</td>
         <td style="color:#5a6f6b;">{{ c.identificacion|default:"—" }}</td>
         <td style="color:#5a6f6b;">{{ c.id_ciudad.nombre_ciudad|default:"—" }}</td>
         <td style="color:#5a6f6b;">{{ c.telefono|default:"—" }}</td>
@@ -63,7 +63,7 @@
               {{ form.nombre_razon_social }}
               {% if form.nombre_razon_social.errors %}<div class="text-danger" style="font-size:.8rem;">{{ form.nombre_razon_social.errors|striptags }}</div>{% endif %}
             </div>
-            <div class="col-md-6">{{ form.tipo_cliente.label_tag }} {{ form.tipo_cliente }}</div>
+            <div class="col-md-6">{{ form.id_tipo_cliente.label_tag }} {{ form.id_tipo_cliente }}</div>
             <div class="col-md-6">{{ form.identificacion.label_tag }} {{ form.identificacion }}</div>
             <div class="col-md-6">{{ form.id_provincia.label_tag }} {{ form.id_provincia }}</div>
             <div class="col-md-6">{{ form.id_ciudad.label_tag }} {{ form.id_ciudad }}</div>

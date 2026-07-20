@@ -9,13 +9,13 @@ from django.db import models
 
 
 class TmMCliente(models.Model):
-    id_cliente = models.IntegerField(primary_key=True)
-    tipo_cliente = models.CharField(max_length=50, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
+    id_cliente = models.AutoField(primary_key=True)
     identificacion = models.CharField(max_length=20, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     id_ciudad = models.ForeignKey('TmPCiudad', models.DO_NOTHING, db_column='id_ciudad', blank=True, null=True)
     nombre_razon_social = models.CharField(max_length=150, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
-    telefono = models.CharField(max_length=20, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
+    telefono = models.CharField(max_length=10, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     email = models.CharField(max_length=150, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
+    id_tipo_cliente = models.ForeignKey('TmPTipocliente', models.DO_NOTHING, db_column='id_tipo_cliente', blank=True, null=True)
 
     class Meta:
         managed = False
@@ -26,7 +26,7 @@ class TmMCliente(models.Model):
 
 
 class TmMMascota(models.Model):
-    id_mascota = models.IntegerField(primary_key=True)
+    id_mascota = models.AutoField(primary_key=True)
     id_cliente = models.ForeignKey(TmMCliente, models.DO_NOTHING, db_column='id_cliente', blank=True, null=True)
     id_raza = models.ForeignKey('TmPRaza', models.DO_NOTHING, db_column='id_raza', blank=True, null=True)
     nombre = models.CharField(max_length=100, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
@@ -43,7 +43,7 @@ class TmMMascota(models.Model):
 
 
 class TmMProducto(models.Model):
-    id_producto = models.IntegerField(primary_key=True)
+    id_producto = models.AutoField(primary_key=True)
     id_categoria = models.ForeignKey('TmPCategoria', models.DO_NOTHING, db_column='id_categoria', blank=True, null=True)
     nombre_producto = models.CharField(max_length=150, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     precio_venta_actual = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
@@ -61,10 +61,10 @@ class TmMProducto(models.Model):
 
 
 class TmMProveedor(models.Model):
-    id_proveedor = models.IntegerField(primary_key=True)
+    id_proveedor = models.AutoField(primary_key=True)
     ruc = models.CharField(max_length=13, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     razon_social = models.CharField(max_length=150, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
-    telefono = models.CharField(max_length=20, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
+    telefono = models.CharField(max_length=10, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     email = models.CharField(max_length=150, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     id_ciudad = models.ForeignKey('TmPCiudad', models.DO_NOTHING, db_column='id_ciudad', blank=True, null=True)
 
@@ -77,7 +77,7 @@ class TmMProveedor(models.Model):
 
 
 class TmMServicio(models.Model):
-    id_servicio = models.IntegerField(primary_key=True)
+    id_servicio = models.AutoField(primary_key=True)
     id_tarifa_servicio = models.ForeignKey('TmPTarifaservicio', models.DO_NOTHING, db_column='id_tarifa_servicio', blank=True, null=True)
     nombre_servicio = models.CharField(max_length=150, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     duracion_estimada_min = models.IntegerField(blank=True, null=True)
@@ -94,7 +94,7 @@ class TmMServicio(models.Model):
 
 
 class TmMUsuario(models.Model):
-    id_usuario = models.IntegerField(primary_key=True)
+    id_usuario = models.AutoField(primary_key=True)
     nombre_usuario = models.CharField(max_length=100, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     contrasena_hash = models.CharField(max_length=255, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     id_cargo = models.ForeignKey('TmPCargo', models.DO_NOTHING, db_column='id_cargo', blank=True, null=True)
@@ -109,7 +109,7 @@ class TmMUsuario(models.Model):
 
 
 class TmPCargo(models.Model):
-    id_cargo = models.IntegerField(primary_key=True)
+    id_cargo = models.AutoField(primary_key=True)
     nombre_cargo = models.CharField(max_length=100, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     descripcion = models.CharField(max_length=255, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
 
@@ -122,7 +122,7 @@ class TmPCargo(models.Model):
 
 
 class TmPCategoria(models.Model):
-    id_categoria = models.IntegerField(primary_key=True)
+    id_categoria = models.AutoField(primary_key=True)
     nombre_categoria = models.CharField(max_length=100, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     descripcion = models.CharField(max_length=255, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
 
@@ -135,7 +135,7 @@ class TmPCategoria(models.Model):
 
 
 class TmPCiudad(models.Model):
-    id_ciudad = models.IntegerField(primary_key=True)
+    id_ciudad = models.AutoField(primary_key=True)
     nombre_ciudad = models.CharField(max_length=100, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     id_provincia = models.ForeignKey('TmPProvincia', models.DO_NOTHING, db_column='id_provincia', blank=True, null=True)
 
@@ -148,7 +148,7 @@ class TmPCiudad(models.Model):
 
 
 class TmPEspecie(models.Model):
-    id_especie = models.IntegerField(primary_key=True)
+    id_especie = models.AutoField(primary_key=True)
     nombre_especie = models.CharField(max_length=100, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
 
     class Meta:
@@ -160,7 +160,7 @@ class TmPEspecie(models.Model):
 
 
 class TmPProvincia(models.Model):
-    id_provincia = models.IntegerField(primary_key=True)
+    id_provincia = models.AutoField(primary_key=True)
     nombre_provincia = models.CharField(max_length=100, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
 
     class Meta:
@@ -172,7 +172,7 @@ class TmPProvincia(models.Model):
 
 
 class TmPRaza(models.Model):
-    id_raza = models.IntegerField(primary_key=True)
+    id_raza = models.AutoField(primary_key=True)
     id_especie = models.ForeignKey(TmPEspecie, models.DO_NOTHING, db_column='id_especie', blank=True, null=True)
     nombre_raza = models.CharField(max_length=100, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
 
@@ -187,7 +187,7 @@ class TmPRaza(models.Model):
 
 
 class TmPTarifaservicio(models.Model):
-    id_tarifa_servicio = models.IntegerField(primary_key=True)
+    id_tarifa_servicio = models.AutoField(primary_key=True)
     talla = models.CharField(max_length=50, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     precio = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
@@ -199,8 +199,20 @@ class TmPTarifaservicio(models.Model):
         return f'{self.talla} (${self.precio})' if self.talla else f'Tarifa #{self.id_tarifa_servicio}'
 
 
+class TmPTipocliente(models.Model):
+    id_tipo_cliente = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=50, db_collation='Modern_Spanish_CI_AS')
+
+    class Meta:
+        managed = False
+        db_table = 'TM_P_TipoCliente'
+
+    def __str__(self):
+        return self.nombre or f'Tipo de cliente #{self.id_tipo_cliente}'
+
+
 class TmPTipopago(models.Model):
-    id_tipo_pago = models.IntegerField(primary_key=True)
+    id_tipo_pago = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=100, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     codigo_sri = models.CharField(max_length=10, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     descripcion = models.CharField(max_length=255, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
@@ -214,7 +226,7 @@ class TmPTipopago(models.Model):
 
 
 class TmTCompra(models.Model):
-    id_compra = models.IntegerField(primary_key=True)
+    id_compra = models.AutoField(primary_key=True)
     id_proveedor = models.ForeignKey(TmMProveedor, models.DO_NOTHING, db_column='id_proveedor', blank=True, null=True)
     id_usuario = models.ForeignKey(TmMUsuario, models.DO_NOTHING, db_column='id_usuario', blank=True, null=True)
     fecha_hora_compra = models.DateTimeField(blank=True, null=True)
@@ -229,7 +241,7 @@ class TmTCompra(models.Model):
 
 
 class TmTDetallecompra(models.Model):
-    id_detalle_compra = models.IntegerField(primary_key=True)
+    id_detalle_compra = models.AutoField(primary_key=True)
     id_compra = models.ForeignKey(TmTCompra, models.DO_NOTHING, db_column='id_compra', blank=True, null=True)
     id_producto = models.ForeignKey(TmMProducto, models.DO_NOTHING, db_column='id_producto', blank=True, null=True)
     cantidad = models.IntegerField(blank=True, null=True)
@@ -244,7 +256,7 @@ class TmTDetallecompra(models.Model):
 
 
 class TmTDetallereserva(models.Model):
-    id_detalle_reserva = models.IntegerField(primary_key=True)
+    id_detalle_reserva = models.AutoField(primary_key=True)
     id_reserva = models.ForeignKey('TmTReserva', models.DO_NOTHING, db_column='id_reserva', blank=True, null=True)
     id_mascota = models.ForeignKey(TmMMascota, models.DO_NOTHING, db_column='id_mascota', blank=True, null=True)
     id_servicio = models.ForeignKey(TmMServicio, models.DO_NOTHING, db_column='id_servicio', blank=True, null=True)
@@ -262,7 +274,7 @@ class TmTDetallereserva(models.Model):
 
 
 class TmTDetalleventa(models.Model):
-    id_detalle_venta = models.IntegerField(primary_key=True)
+    id_detalle_venta = models.AutoField(primary_key=True)
     id_venta = models.ForeignKey('TmTVenta', models.DO_NOTHING, db_column='id_venta', blank=True, null=True)
     id_producto = models.ForeignKey(TmMProducto, models.DO_NOTHING, db_column='id_producto', blank=True, null=True)
     cantidad = models.IntegerField(blank=True, null=True)
@@ -277,7 +289,7 @@ class TmTDetalleventa(models.Model):
 
 
 class TmTFactura(models.Model):
-    id_factura = models.IntegerField(primary_key=True)
+    id_factura = models.AutoField(primary_key=True)
     id_cliente = models.ForeignKey(TmMCliente, models.DO_NOTHING, db_column='id_cliente', blank=True, null=True)
     id_usuario = models.ForeignKey(TmMUsuario, models.DO_NOTHING, db_column='id_usuario', blank=True, null=True)
     numero_factura = models.CharField(max_length=30, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
@@ -297,7 +309,7 @@ class TmTFactura(models.Model):
 
 
 class TmTHorario(models.Model):
-    id_horario = models.IntegerField(primary_key=True)
+    id_horario = models.AutoField(primary_key=True)
     id_usuario = models.ForeignKey(TmMUsuario, models.DO_NOTHING, db_column='id_usuario', blank=True, null=True)
     fecha = models.DateField(blank=True, null=True)
     hora_inicio = models.TimeField(blank=True, null=True)
@@ -312,7 +324,7 @@ class TmTHorario(models.Model):
 
 
 class TmTReserva(models.Model):
-    id_reserva = models.IntegerField(primary_key=True)
+    id_reserva = models.AutoField(primary_key=True)
     id_cliente = models.ForeignKey(TmMCliente, models.DO_NOTHING, db_column='id_cliente', blank=True, null=True)
     id_usuario = models.ForeignKey(TmMUsuario, models.DO_NOTHING, db_column='id_usuario', blank=True, null=True)
     id_factura = models.ForeignKey(TmTFactura, models.DO_NOTHING, db_column='id_factura', blank=True, null=True)
@@ -328,7 +340,7 @@ class TmTReserva(models.Model):
 
 
 class TmTVenta(models.Model):
-    id_venta = models.IntegerField(primary_key=True)
+    id_venta = models.AutoField(primary_key=True)
     id_factura = models.ForeignKey(TmTFactura, models.DO_NOTHING, db_column='id_factura', blank=True, null=True)
     fecha_hora_venta = models.DateTimeField(blank=True, null=True)
     total_venta = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
