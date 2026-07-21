@@ -24,14 +24,14 @@
         <td style="font-weight:700;color:var(--ink);">{{ d.id_mascota.nombre|default:"—" }}</td>
         <td style="color:#5a6f6b;">{{ d.id_servicio.nombre_servicio|default:"—" }}</td>
         <td style="font-weight:700;color:var(--ink);">{% if d.precio_aplicado %}${{ d.precio_aplicado }}{% else %}—{% endif %}</td>
-        <td><span class="badge rounded-pill" style="{{ d.badge_style }};padding:7px 13px;font-weight:700;">{{ d.estado|default:"—" }}</span></td>
+        <td>
+          <span class="badge rounded-pill" style="{{ d.badge_style }};padding:7px 13px;font-weight:700;">{{ d.estado|default:"—" }}</span>
+          {% if d.id_reserva.id_factura %}<div style="font-size:.75rem;color:#9aaba7;margin-top:4px;">Factura {{ d.id_reserva.id_factura.numero_factura }} · ${{ d.id_reserva.id_factura.total }}</div>{% endif %}
+        </td>
         <td class="text-end">
           <div style="display:inline-flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
             {% if d.estado != 'Completado' %}
-            <form method="post" action="{% url 'tienda:cita_estado' d.id_detalle_reserva %}" style="display:inline;">
-              {% csrf_token %}<input type="hidden" name="estado" value="Completado">
-              <button type="submit" class="gr-iconbtn" title="Marcar como completado"><i class="bi bi-check-lg"></i></button>
-            </form>
+            <button type="button" class="gr-iconbtn" title="Marcar como completado y facturar" data-bs-toggle="modal" data-bs-target="#modalCompletar" data-url="{% url 'tienda:cita_estado' d.id_detalle_reserva %}"><i class="bi bi-check-lg"></i></button>
             {% endif %}
             {% if d.estado != 'Cancelado' %}
             <form method="post" action="{% url 'tienda:cita_estado' d.id_detalle_reserva %}" style="display:inline;">
@@ -97,9 +97,51 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="modalCompletar" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border:none;border-radius:20px;">
+      <form method="post" id="formCompletar">
+        {% csrf_token %}
+        <input type="hidden" name="estado" value="Completado">
+        <div class="modal-header" style="border-bottom:1px solid #eef3f1;padding:22px 26px;">
+          <h5 class="modal-title gr-h">Completar y facturar cita</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" style="padding:26px;">
+          {% if not tipos_pago.exists %}
+            <div class="alert alert-warning" style="border-radius:12px;">Aún no hay formas de pago cargadas en <code>TM_P_TipoPago</code>.</div>
+          {% endif %}
+          <label class="form-label" for="id_pago_tipo">Forma de pago</label>
+          <select name="id_tipo_pago" id="id_pago_tipo" class="form-select" required>
+            <option value="">---------</option>
+            {% for tp in tipos_pago %}
+            <option value="{{ tp.id_tipo_pago }}">{{ tp.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="modal-footer" style="border-top:1px solid #eef3f1;padding:18px 26px;">
+          <button type="button" class="btn btn-light" style="border-radius:12px;font-weight:700;" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-brand" style="border-radius:12px;">Completar y facturar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var modalCompletar = document.getElementById('modalCompletar');
+  if (modalCompletar) {
+    modalCompletar.addEventListener('show.bs.modal', function (event) {
+      var url = event.relatedTarget.getAttribute('data-url');
+      document.getElementById('formCompletar').setAttribute('action', url);
+    });
+  }
+});
+</script>
 {% if form.errors or editing %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {

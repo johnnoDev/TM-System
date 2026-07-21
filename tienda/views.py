@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from .forms import CitaForm, ClienteForm, MascotaForm
-from .models import TmMCliente, TmMMascota, TmTDetallereserva, TmTReserva
+from .models import TmMCliente, TmMMascota, TmPTipopago, TmTDetallereserva, TmTFactura, TmTReserva
 
 PALETTE = ['#3aa89a', '#5b8fd8', '#d98a5b', '#9b6cc9', '#c9a85b', '#e08a5b']
 
@@ -18,6 +18,8 @@ BADGE_MAP = {
 }
 
 PERIODOS = {'dia': 'Hoy', 'semana': 'Esta semana', 'mes': 'Este mes'}
+
+IVA_PORCENTAJE = 15
 
 
 def _con_badges(detalles):
@@ -38,6 +40,26 @@ def _rango_periodo(periodo, hoy):
         inicio = hoy
         fin = hoy + datetime.timedelta(days=1)
     return inicio, fin
+
+
+def _facturar_reserva(reserva, tipo_pago):
+    detalles = TmTDetallereserva.objects.filter(id_reserva=reserva).exclude(estado='Cancelado')
+    subtotal = sum((d.precio_aplicado or 0) * (d.cantidad or 1) for d in detalles)
+    iva = round(subtotal * IVA_PORCENTAJE / 100, 2)
+    total = subtotal + iva
+
+    factura = TmTFactura.objects.create(
+        id_cliente=reserva.id_cliente,
+        fecha_emision=timezone.now(),
+        subtotal=subtotal,
+        iva=iva,
+        total=total,
+        id_tipo_pago=tipo_pago,
+        estado='Emitida',
+    )
+    factura.numero_factura = f'F-{factura.id_factura:06d}'
+    factura.save(update_fields=['numero_factura'])
+    reserva.id_factura = factura
 
 
 def _iniciales(nombre):
@@ -208,6 +230,7 @@ def citas(request):
     return render(request, 'tienda/citas.html', {
         'form': form,
         'detalles': detalles,
+        'tipos_pago': TmPTipopago.objects.order_by('nombre'),
         'active_view': 'citas',
     })
 
@@ -251,6 +274,7 @@ def cita_editar(request, pk):
         'form': form,
         'detalles': detalles,
         'editing': detalle,
+        'tipos_pago': TmPTipopago.objects.order_by('nombre'),
         'active_view': 'citas',
     })
 
@@ -259,12 +283,25 @@ def cita_estado(request, pk):
     detalle = get_object_or_404(TmTDetallereserva.objects.select_related('id_reserva'), pk=pk)
     estado = request.POST.get('estado')
     if request.method == 'POST' and estado in BADGE_MAP:
+        reserva = detalle.id_reserva
+
+        if estado == 'Completado' and reserva and reserva.id_factura_id is None:
+            tipo_pago = TmPTipopago.objects.filter(pk=request.POST.get('id_tipo_pago')).first()
+            if tipo_pago is None:
+                messages.error(request, 'Selecciona una forma de pago para completar y facturar la cita.')
+                return redirect('tienda:citas')
+            _facturar_reserva(reserva, tipo_pago)
+
         detalle.estado = estado
         detalle.save()
-        if detalle.id_reserva:
-            detalle.id_reserva.estado = estado
-            detalle.id_reserva.save()
-        messages.success(request, f'Cita marcada como {estado}.')
+        if reserva:
+            reserva.estado = estado
+            reserva.save()
+
+        if estado == 'Completado':
+            messages.success(request, f'Cita completada. Factura {reserva.id_factura.numero_factura} generada.')
+        else:
+            messages.success(request, f'Cita marcada como {estado}.')
     return redirect('tienda:citas')
 
 
