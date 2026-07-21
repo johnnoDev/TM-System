@@ -42,6 +42,12 @@ def _rango_periodo(periodo, hoy):
     return inicio, fin
 
 
+def _precio_servicio(servicio):
+    if servicio.id_tarifa_servicio_id and servicio.id_tarifa_servicio.precio is not None:
+        return servicio.id_tarifa_servicio.precio
+    return servicio.precio_base
+
+
 def _facturar_reserva(reserva, tipo_pago):
     detalles = TmTDetallereserva.objects.filter(id_reserva=reserva).exclude(estado='Cancelado')
     subtotal = sum((d.precio_aplicado or 0) * (d.cantidad or 1) for d in detalles)
@@ -214,7 +220,7 @@ def citas(request):
                 id_mascota=mascota,
                 id_servicio=servicio,
                 cantidad=1,
-                precio_aplicado=servicio.precio_base,
+                precio_aplicado=_precio_servicio(servicio),
                 duracion_estimada_min=servicio.duracion_estimada_min,
                 estado='Pendiente',
             )
@@ -248,7 +254,7 @@ def cita_editar(request, pk):
 
             detalle.id_mascota = mascota
             detalle.id_servicio = servicio
-            detalle.precio_aplicado = servicio.precio_base
+            detalle.precio_aplicado = _precio_servicio(servicio)
             detalle.duracion_estimada_min = servicio.duracion_estimada_min
             detalle.save()
 

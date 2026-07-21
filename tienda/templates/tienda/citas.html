@@ -85,7 +85,7 @@
               {{ form.id_servicio.label_tag }}
               {{ form.id_servicio }}
               {% if form.id_servicio.errors %}<div class="text-danger" style="font-size:.8rem;">{{ form.id_servicio.errors|striptags }}</div>{% endif %}
-              <div style="font-size:.78rem;color:#9aaba7;margin-top:6px;">El costo se toma automáticamente del precio base del servicio.</div>
+              <div style="font-size:.78rem;color:#9aaba7;margin-top:6px;">El costo se toma automáticamente de la tarifa del servicio. Al elegir una mascota, la lista se filtra a los servicios compatibles con su talla.</div>
             </div>
           </div>
         </div>
@@ -139,6 +139,28 @@ document.addEventListener('DOMContentLoaded', function () {
       var url = event.relatedTarget.getAttribute('data-url');
       document.getElementById('formCompletar').setAttribute('action', url);
     });
+  }
+
+  var mascotaSel = document.getElementById('id_id_mascota');
+  var servicioSel = document.getElementById('id_id_servicio');
+  if (mascotaSel && servicioSel) {
+    var todosLosServicios = Array.prototype.slice.call(servicioSel.options);
+    var filtrarServicios = function () {
+      var opcionMascota = mascotaSel.options[mascotaSel.selectedIndex];
+      var tallaMascota = opcionMascota ? opcionMascota.getAttribute('data-talla') : null;
+      var actual = servicioSel.value;
+      servicioSel.innerHTML = '';
+      todosLosServicios.forEach(function (opcion) {
+        var tallaServicio = opcion.getAttribute('data-talla');
+        if (!opcion.value || !tallaMascota || !tallaServicio || tallaServicio === tallaMascota) {
+          servicioSel.appendChild(opcion.cloneNode(true));
+        }
+      });
+      var sigueValido = Array.prototype.some.call(servicioSel.options, function (o) { return o.value === actual; });
+      servicioSel.value = sigueValido ? actual : '';
+    };
+    mascotaSel.addEventListener('change', filtrarServicios);
+    filtrarServicios();
   }
 });
 </script>

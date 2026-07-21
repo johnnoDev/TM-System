@@ -35,6 +35,38 @@ class RazaSelect(forms.Select):
         return option
 
 
+class ServicioSelect(forms.Select):
+    """Select de servicio que anota cada <option> con su talla (si aplica) para filtrado en cascada por JS."""
+
+    def __init__(self, talla_map=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.talla_map = talla_map or {}
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        raw_value = value.value if hasattr(value, 'value') else value
+        talla = self.talla_map.get(str(raw_value)) if raw_value else None
+        if talla:
+            option['attrs']['data-talla'] = talla
+        return option
+
+
+class MascotaSelect(forms.Select):
+    """Select de mascota que anota cada <option> con su talla para filtrado en cascada por JS."""
+
+    def __init__(self, talla_map=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.talla_map = talla_map or {}
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        raw_value = value.value if hasattr(value, 'value') else value
+        talla = self.talla_map.get(str(raw_value)) if raw_value else None
+        if talla:
+            option['attrs']['data-talla'] = talla
+        return option
+
+
 class ClienteForm(forms.ModelForm):
     id_tipo_cliente = forms.ModelChoiceField(
         queryset=TmPTipocliente.objects.order_by('nombre'),
@@ -149,7 +181,29 @@ class CitaForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        mascotas = list(TmMMascota.objects.select_related('id_cliente').order_by('nombre'))
+        mascota_talla_map = {str(m.id_mascota): m.talla for m in mascotas if m.talla}
+
+        servicios = list(TmMServicio.objects.select_related('id_tarifa_servicio').order_by('nombre_servicio'))
+        servicio_talla_map = {
+            str(s.id_servicio): s.id_tarifa_servicio.talla
+            for s in servicios if s.id_tarifa_servicio_id and s.id_tarifa_servicio.talla
+        }
+
         self.fields['id_mascota'].queryset = TmMMascota.objects.select_related('id_cliente').order_by('nombre')
-        self.fields['id_mascota'].widget.attrs['class'] = 'form-select'
+        self.fields['id_mascota'].widget = MascotaSelect(talla_map=mascota_talla_map, attrs={'class': 'form-select'})
         self.fields['id_servicio'].queryset = TmMServicio.objects.order_by('nombre_servicio')
-        self.fields['id_servicio'].widget.attrs['class'] = 'form-select'
+        self.fields['id_servicio'].widget = ServicioSelect(talla_map=servicio_talla_map, attrs={'class': 'form-select'})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        mascota = cleaned_data.get('id_mascota')
+        servicio = cleaned_data.get('id_servicio')
+        if mascota and mascota.talla and servicio and servicio.id_tarifa_servicio_id:
+            talla_servicio = servicio.id_tarifa_servicio.talla
+            if talla_servicio and talla_servicio != mascota.talla:
+                self.add_error(
+                    'id_servicio',
+                    f'Este servicio es para talla {talla_servicio}, pero {mascota.nombre} es talla {mascota.talla}.',
+                )
+        return cleaned_data
