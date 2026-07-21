@@ -33,7 +33,7 @@
         <td style="color:#5a6f6b;">{{ m.sexo|default:"—" }}</td>
         <td style="color:#5a6f6b;">{{ m.talla|default:"—" }}</td>
         <td style="color:#5a6f6b;">{{ m.edad_display }}</td>
-        <td style="color:#5a6f6b;">{{ m.id_cliente.nombre_razon_social|default:"—" }}</td>
+        <td style="color:#5a6f6b;">{{ m.id_cliente.nombre_completo|default:"—" }}</td>
         <td class="text-end">
           <div style="display:inline-flex;gap:8px;">
             <a class="gr-iconbtn" href="{% url 'tienda:mascota_editar' m.id_mascota %}" title="Editar"><i class="bi bi-pencil"></i></a>

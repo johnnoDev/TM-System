@@ -12,7 +12,8 @@ class TmMCliente(models.Model):
     id_cliente = models.AutoField(primary_key=True)
     identificacion = models.CharField(max_length=20, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     id_ciudad = models.ForeignKey('TmPCiudad', models.DO_NOTHING, db_column='id_ciudad', blank=True, null=True)
-    nombre_razon_social = models.CharField(max_length=150, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
+    nombre = models.CharField(max_length=200, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
+    apellido = models.CharField(max_length=200, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     telefono = models.CharField(max_length=10, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     email = models.CharField(max_length=150, db_collation='Modern_Spanish_CI_AS', blank=True, null=True)
     id_tipo_cliente = models.ForeignKey('TmPTipocliente', models.DO_NOTHING, db_column='id_tipo_cliente', blank=True, null=True)
@@ -21,8 +22,12 @@ class TmMCliente(models.Model):
         managed = False
         db_table = 'TM_M_Cliente'
 
+    @property
+    def nombre_completo(self):
+        return ' '.join(parte for parte in (self.nombre, self.apellido) if parte) or None
+
     def __str__(self):
-        return self.nombre_razon_social or f'Cliente #{self.id_cliente}'
+        return self.nombre_completo or f'Cliente #{self.id_cliente}'
 
 
 class TmMHorario(models.Model):

@@ -224,13 +224,13 @@ def clientes(request):
     else:
         form = ClienteForm()
 
-    qs = TmMCliente.objects.select_related('id_ciudad').order_by('nombre_razon_social')
+    qs = TmMCliente.objects.select_related('id_ciudad').order_by('nombre', 'apellido')
     q = request.GET.get('q', '').strip()
     if q:
-        qs = qs.filter(nombre_razon_social__icontains=q)
+        qs = qs.filter(Q(nombre__icontains=q) | Q(apellido__icontains=q))
     qs = list(qs)
     for i, c in enumerate(qs):
-        c.iniciales = _iniciales(c.nombre_razon_social)
+        c.iniciales = _iniciales(c.nombre_completo)
         c.color = PALETTE[i % len(PALETTE)]
 
     return render(request, 'tienda/clientes.html', {
@@ -252,7 +252,7 @@ def cliente_editar(request, pk):
     else:
         form = ClienteForm(instance=cliente)
 
-    qs = TmMCliente.objects.select_related('id_ciudad').order_by('nombre_razon_social')
+    qs = TmMCliente.objects.select_related('id_ciudad').order_by('nombre', 'apellido')
     return render(request, 'tienda/clientes.html', {
         'form': form,
         'clientes': qs,
@@ -751,7 +751,7 @@ def venta(request):
         f.badge_style = FACTURA_BADGE_MAP.get(f.estado, 'background:#eef3f1;color:#5a6f6b')
 
     return render(request, 'tienda/venta.html', {
-        'clientes': TmMCliente.objects.order_by('nombre_razon_social'),
+        'clientes': TmMCliente.objects.order_by('nombre', 'apellido'),
         'mascotas': TmMMascota.objects.select_related('id_cliente').order_by('nombre'),
         'servicios': servicios,
         'productos': TmMProducto.objects.filter(stock_actual__gt=0).order_by('nombre_producto'),

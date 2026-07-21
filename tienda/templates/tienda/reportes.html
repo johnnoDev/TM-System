@@ -57,7 +57,7 @@
         <div style="flex:1;min-width:220px;">
           <select name="mascota_id" class="form-select" onchange="this.form.submit()" style="max-width:320px;">
             {% for m in mascotas %}
-            <option value="{{ m.id_mascota }}" {% if mascota_sel.id_mascota == m.id_mascota %}selected{% endif %}>{{ m.nombre }}{% if m.id_cliente %} · Dueño: {{ m.id_cliente.nombre_razon_social }}{% endif %}</option>
+            <option value="{{ m.id_mascota }}" {% if mascota_sel.id_mascota == m.id_mascota %}selected{% endif %}>{{ m.nombre }}{% if m.id_cliente %} · Dueño: {{ m.id_cliente.nombre_completo }}{% endif %}</option>
             {% endfor %}
           </select>
         </div>
@@ -127,8 +127,8 @@
         {% for f in frecuentes %}
         <div style="display:flex;align-items:center;gap:16px;background:#f7faf9;border:1px solid #eef3f1;border-radius:14px;padding:14px 18px;flex-wrap:wrap;">
           <div style="font-family:'Nunito',sans-serif;font-weight:800;font-size:1.3rem;color:var(--brand-l);width:28px;">{{ forloop.counter }}</div>
-          <div class="gr-avatar" style="background:#3aa89a;">{{ f.nombre_razon_social|default:"?" }}</div>
-          <div style="flex:1;min-width:160px;"><div style="font-weight:700;color:var(--ink);">{{ f.nombre_razon_social|default:"—" }}</div><div style="font-size:.8rem;color:#9aaba7;">{{ f.num_mascotas }} mascota(s)</div></div>
+          <div class="gr-avatar" style="background:#3aa89a;">{{ f.nombre_completo|default:"?" }}</div>
+          <div style="flex:1;min-width:160px;"><div style="font-weight:700;color:var(--ink);">{{ f.nombre_completo|default:"—" }}</div><div style="font-size:.8rem;color:#9aaba7;">{{ f.num_mascotas }} mascota(s)</div></div>
           <div style="text-align:right;"><div class="gr-h" style="color:var(--brand-d);font-size:1.2rem;">{{ f.visitas }}</div><div style="font-size:.72rem;color:#9aaba7;">visitas</div></div>
         </div>
         {% endfor %}
@@ -150,7 +150,7 @@
       {% for n in inactivas %}
       <div style="display:flex;align-items:center;gap:14px;background:#fdf7f0;border:1px solid #f5e6d4;border-radius:14px;padding:13px 18px;margin-bottom:11px;flex-wrap:wrap;">
         <div class="gr-avatar" style="background:#e8a13a;"><i class="bi bi-clock"></i></div>
-        <div style="flex:1;min-width:180px;"><div style="font-weight:700;color:var(--ink);">{{ n.nombre|default:"—" }}</div><div style="font-size:.8rem;color:#9aaba7;">Dueño: {{ n.id_cliente.nombre_razon_social|default:"Sin dueño" }}{% if n.id_cliente.telefono %} · {{ n.id_cliente.telefono }}{% endif %}</div></div>
+        <div style="flex:1;min-width:180px;"><div style="font-weight:700;color:var(--ink);">{{ n.nombre|default:"—" }}</div><div style="font-size:.8rem;color:#9aaba7;">Dueño: {{ n.id_cliente.nombre_completo|default:"Sin dueño" }}{% if n.id_cliente.telefono %} · {{ n.id_cliente.telefono }}{% endif %}</div></div>
         <div style="text-align:right;margin-right:6px;"><div style="font-weight:700;color:#c07a26;">{{ n.ultima_visita|date:"d M Y"|default:"Sin visitas" }}</div><div style="font-size:.72rem;color:#b79a76;">última visita</div></div>
       </div>
       {% endfor %}

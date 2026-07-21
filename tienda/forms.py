@@ -54,16 +54,18 @@ class ClienteForm(forms.ModelForm):
 
     class Meta:
         model = TmMCliente
-        fields = ['nombre_razon_social', 'id_tipo_cliente', 'identificacion', 'id_ciudad', 'telefono', 'email']
+        fields = ['nombre', 'apellido', 'id_tipo_cliente', 'identificacion', 'id_ciudad', 'telefono', 'email']
         labels = {
-            'nombre_razon_social': 'Nombre completo',
+            'nombre': 'Nombre',
+            'apellido': 'Apellido',
             'identificacion': 'Identificación',
             'id_ciudad': 'Ciudad',
             'telefono': 'Teléfono',
             'email': 'Correo',
         }
         widgets = {
-            'nombre_razon_social': forms.TextInput(attrs={'placeholder': 'Ej. Ana Torres'}),
+            'nombre': forms.TextInput(attrs={'placeholder': 'Ej. Ana (o razón social si es empresa)'}),
+            'apellido': forms.TextInput(attrs={'placeholder': 'Ej. Torres (vacío para empresas)'}),
             'identificacion': forms.TextInput(attrs={'placeholder': 'Cédula o RUC'}),
             'telefono': forms.TextInput(attrs={'placeholder': '+52 55 ...'}),
             'email': forms.EmailInput(attrs={'placeholder': 'correo@mail.com'}),
@@ -77,7 +79,8 @@ class ClienteForm(forms.ModelForm):
         self.fields['id_ciudad'].widget = CiudadSelect(provincia_map=provincia_map)
         self.fields['id_ciudad'].queryset = TmPCiudad.objects.order_by('nombre_ciudad')
         self.fields['id_ciudad'].required = False
-        self.fields['nombre_razon_social'].required = True
+        self.fields['nombre'].required = True
+        self.fields['apellido'].required = False
 
         if self.instance and self.instance.pk and self.instance.id_ciudad_id:
             ciudad_actual = next((c for c in ciudades if c.id_ciudad == self.instance.id_ciudad_id), None)
@@ -174,7 +177,7 @@ class MascotaForm(forms.ModelForm):
         self.fields['id_raza'].queryset = TmPRaza.objects.order_by('nombre_raza')
         self.fields['id_raza'].label_from_instance = lambda r: r.nombre_raza
         self.fields['id_raza'].required = False
-        self.fields['id_cliente'].queryset = TmMCliente.objects.order_by('nombre_razon_social')
+        self.fields['id_cliente'].queryset = TmMCliente.objects.order_by('nombre', 'apellido')
         self.fields['id_cliente'].required = False
         self.fields['nombre'].required = True
 
