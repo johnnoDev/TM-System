@@ -49,10 +49,12 @@ label.form-label{font-weight:700;font-size:.85rem;color:var(--ink);}
     </div>
     <div style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:#a9b8b5;font-weight:700;padding:6px 12px 8px;">Menú</div>
     <nav style="display:flex;flex-direction:column;gap:6px;">
+      <a class="gr-navlink {% if active_view == 'venta' %}active{% endif %}" href="{% url 'tienda:venta' %}"><i class="bi bi-cash-coin"></i>Venta</a>
+      <a class="gr-navlink {% if active_view == 'reportes' %}active{% endif %}" href="{% url 'tienda:reportes' %}"><i class="bi bi-graph-up-arrow"></i>Reportes</a>
+      <div style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:#a9b8b5;font-weight:700;padding:14px 12px 4px;">Configuración</div>
       <a class="gr-navlink {% if active_view == 'clientes' %}active{% endif %}" href="{% url 'tienda:clientes' %}"><i class="bi bi-people-fill"></i>Clientes</a>
       <a class="gr-navlink {% if active_view == 'mascotas' %}active{% endif %}" href="{% url 'tienda:mascotas' %}"><i class="bi bi-heart-fill"></i>Mascotas</a>
-      <a class="gr-navlink {% if active_view == 'citas' %}active{% endif %}" href="{% url 'tienda:citas' %}"><i class="bi bi-calendar-check-fill"></i>Citas</a>
-      <a class="gr-navlink {% if active_view == 'reportes' %}active{% endif %}" href="{% url 'tienda:reportes' %}"><i class="bi bi-graph-up-arrow"></i>Reportes</a>
+      <a class="gr-navlink {% if active_view == 'productos' %}active{% endif %}" href="{% url 'tienda:productos' %}"><i class="bi bi-box-seam-fill"></i>Productos</a>
     </nav>
   </aside>
 

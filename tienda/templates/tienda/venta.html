@@ -1,0 +1,360 @@
+{% extends 'tienda/base.html' %}
+
+{% block title %}Venta · PetGroom{% endblock %}
+{% block crumb %}Inicio / Venta{% endblock %}
+{% block heading %}Nueva Venta{% endblock %}
+
+{% block topbar_extra %}
+<a href="{% url 'tienda:reportes' %}" class="btn btn-light" style="border-radius:12px;padding:9px 18px;font-weight:700;border:1px solid #e6efec;"><i class="bi bi-bar-chart-line" style="margin-right:6px;"></i>Ver informe</a>
+{% endblock %}
+
+{% block content %}
+<div class="gr-card" style="padding:24px;box-shadow:0 12px 34px -22px rgba(38,74,69,.4);margin-bottom:26px;">
+  <div class="gr-h" style="font-size:1.15rem;margin-bottom:18px;">Registrar transacción</div>
+
+  {% if not clientes.exists %}
+  <div class="alert alert-warning" style="border-radius:12px;">Registra al menos un cliente antes de iniciar una venta.</div>
+  {% endif %}
+
+  <form method="post" id="formVenta">
+    {% csrf_token %}
+    <div id="cart-inputs"></div>
+
+    <div class="row g-3" style="margin-bottom:18px;">
+      <div class="col-md-4">
+        <label class="form-label" for="cart_cliente">Cliente</label>
+        <select id="cart_cliente" name="cliente" class="form-select" required>
+          <option value="">---------</option>
+          {% for c in clientes %}
+          <option value="{{ c.id_cliente }}">{{ c.nombre_razon_social|default:"—" }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="cart_fecha_servicio">Fecha y hora del servicio</label>
+        <input type="datetime-local" id="cart_fecha_servicio" name="fecha_servicio" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="cart_tipo_pago">Forma de pago</label>
+        <select id="cart_tipo_pago" name="id_tipo_pago" class="form-select" required>
+          <option value="">---------</option>
+          {% for tp in tipos_pago %}
+          <option value="{{ tp.id_tipo_pago }}">{{ tp.nombre }}</option>
+          {% endfor %}
+        </select>
+        {% if not tipos_pago.exists %}<div style="font-size:.78rem;color:#c07a26;margin-top:4px;">No hay formas de pago cargadas en <code>TM_P_TipoPago</code>.</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="row g-3" style="margin-bottom:18px;">
+      <div class="col-md-6">
+        <div style="border:1px dashed #d9e5e1;border-radius:14px;padding:16px;height:100%;">
+          <div style="font-weight:800;color:var(--ink);margin-bottom:10px;"><i class="bi bi-scissors" style="margin-right:7px;color:var(--brand);"></i>Agregar servicio de grooming</div>
+          {% if not mascotas.exists %}
+            <div style="font-size:.85rem;color:#9aaba7;">Registra al menos una mascota.</div>
+          {% elif not servicios %}
+            <div style="font-size:.85rem;color:#9aaba7;">Aún no hay servicios cargados en <code>TM_M_Servicio</code>.</div>
+          {% else %}
+          <div class="row g-2">
+            <div class="col-12">
+              <select id="cart_mascota" class="form-select">
+                <option value="">Selecciona una mascota</option>
+                {% for m in mascotas %}
+                <option value="{{ m.id_mascota }}" data-cliente="{{ m.id_cliente_id|default:'' }}" data-nombre="{{ m.nombre }}" data-talla="{{ m.talla|default:'' }}">{{ m.nombre|default:"—" }}{% if m.id_cliente %} · {{ m.id_cliente.nombre_razon_social }}{% endif %}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <select id="cart_servicio" class="form-select">
+                <option value="">Selecciona un servicio</option>
+                {% for s in servicios %}
+                <option value="{{ s.id_servicio }}" data-nombre="{{ s.nombre_servicio }}" data-talla="{{ s.talla_tarifa }}" data-precio="{{ s.precio_actual|default:'0' }}">{{ s.nombre_servicio|default:"—" }} (${{ s.precio_actual|default:"0" }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <button type="button" id="btnAgregarServicio" class="btn btn-brand" style="border-radius:12px;width:100%;"><i class="bi bi-plus-lg" style="margin-right:6px;"></i>Agregar servicio</button>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div style="border:1px dashed #d9e5e1;border-radius:14px;padding:16px;height:100%;">
+          <div style="font-weight:800;color:var(--ink);margin-bottom:10px;"><i class="bi bi-box-seam" style="margin-right:7px;color:var(--brand);"></i>Agregar producto</div>
+          {% if not productos.exists %}
+            <div style="font-size:.85rem;color:#9aaba7;">No hay productos con stock disponible.</div>
+          {% else %}
+          <div class="row g-2">
+            <div class="col-8">
+              <select id="cart_producto" class="form-select">
+                <option value="">Selecciona un producto</option>
+                {% for p in productos %}
+                <option value="{{ p.id_producto }}" data-nombre="{{ p.nombre_producto }}" data-precio="{{ p.precio_venta_actual|default:'0' }}" data-stock="{{ p.stock_actual|default:'0' }}">{{ p.nombre_producto|default:"—" }} (stock {{ p.stock_actual|default:"0" }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-4">
+              <input type="number" id="cart_cantidad" class="form-control" value="1" min="1">
+            </div>
+            <div class="col-12">
+              <button type="button" id="btnAgregarProducto" class="btn btn-brand" style="border-radius:12px;width:100%;"><i class="bi bi-plus-lg" style="margin-right:6px;"></i>Agregar producto</button>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive" style="margin-bottom:14px;"><table class="table align-middle mb-0">
+      <thead><tr><th>Tipo</th><th>Detalle</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead>
+      <tbody id="cart-rows">
+        <tr id="cart-empty-row"><td colspan="6" style="text-align:center;color:#9aaba7;padding:20px;">El carrito está vacío. Agrega un servicio o producto.</td></tr>
+      </tbody>
+    </table></div>
+
+    <div style="display:flex;justify-content:flex-end;">
+      <div style="min-width:260px;">
+        <div style="display:flex;justify-content:space-between;font-size:.9rem;color:#5a6f6b;margin-bottom:4px;"><span>Subtotal</span><span id="cart-subtotal">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.9rem;color:#5a6f6b;margin-bottom:10px;"><span>IVA (15%)</span><span id="cart-iva">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1.5px solid #eef3f1;"><span class="gr-h">Total</span><span class="gr-h" style="color:var(--brand-d);font-size:1.25rem;" id="cart-total">$0.00</span></div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:18px;">
+      <button type="submit" class="btn btn-brand" style="border-radius:12px;padding:11px 26px;font-weight:800;"><i class="bi bi-cash-coin" style="margin-right:7px;"></i>Registrar venta</button>
+    </div>
+  </form>
+</div>
+
+<div class="gr-card" style="padding:24px;box-shadow:0 12px 34px -22px rgba(38,74,69,.4);">
+  <div class="gr-h" style="font-size:1.15rem;margin-bottom:18px;">Historial de transacciones</div>
+  <div class="table-responsive"><table class="table align-middle mb-0">
+    <thead><tr><th>Factura</th><th>Fecha</th><th>Cliente</th><th>Detalle</th><th>Pago</th><th>Total</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead>
+    <tbody>
+      {% for f in historial %}
+      <tr>
+        <td style="color:#a9b8b5;font-weight:700;">{{ f.numero_factura|default:"—" }}</td>
+        <td style="color:#5a6f6b;">{{ f.fecha_emision|date:"d M, H:i"|default:"—" }}</td>
+        <td style="font-weight:700;color:var(--ink);">{{ f.id_cliente.nombre_razon_social|default:"—" }}</td>
+        <td style="font-size:.82rem;color:#5a6f6b;">
+          {% for r in f.tmtreserva_set.all %}{% for d in r.tmtdetallereserva_set.all %}<div><i class="bi bi-scissors" style="margin-right:5px;color:var(--brand-l);"></i>{{ d.id_servicio.nombre_servicio|default:"Servicio" }} · {{ d.id_mascota.nombre|default:"—" }}</div>{% endfor %}{% endfor %}
+          {% for v in f.tmtventa_set.all %}{% for d in v.tmtdetalleventa_set.all %}<div><i class="bi bi-box-seam" style="margin-right:5px;color:var(--brand-l);"></i>{{ d.id_producto.nombre_producto|default:"Producto" }} × {{ d.cantidad }}</div>{% endfor %}{% endfor %}
+        </td>
+        <td style="color:#5a6f6b;">{{ f.id_tipo_pago.nombre|default:"—" }}</td>
+        <td style="font-weight:800;color:var(--brand-d);">${{ f.total|default:"0" }}</td>
+        <td><span class="badge rounded-pill" style="{{ f.badge_style }};padding:7px 13px;font-weight:700;">{{ f.estado|default:"—" }}</span></td>
+        <td class="text-end">
+          {% if f.estado != 'Anulada' %}
+          <form method="post" action="{% url 'tienda:factura_anular' f.id_factura %}" onsubmit="return confirm('¿Anular la factura {{ f.numero_factura|escapejs }}? Se repondrá el stock de los productos.');">
+            {% csrf_token %}
+            <button type="submit" class="gr-iconbtn del" title="Anular"><i class="bi bi-x-circle"></i></button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" style="text-align:center;color:#9aaba7;padding:26px;">Todavía no hay transacciones registradas.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var carrito = [];
+
+  var clienteSel = document.getElementById('cart_cliente');
+  var mascotaSel = document.getElementById('cart_mascota');
+  var servicioSel = document.getElementById('cart_servicio');
+  var productoSel = document.getElementById('cart_producto');
+  var cantidadInput = document.getElementById('cart_cantidad');
+  var fechaInput = document.getElementById('cart_fecha_servicio');
+
+  var ahora = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+  if (fechaInput) { fechaInput.value = ahora.toISOString().slice(0, 16); }
+
+  function actualizarClienteBloqueado() {
+    if (!clienteSel) return;
+    var hayServicios = carrito.some(function (item) { return item.tipo === 'servicio'; });
+    if (hayServicios) {
+      clienteSel.setAttribute('title', 'Quita los servicios del carrito para cambiar de cliente.');
+      clienteSel.style.pointerEvents = 'none';
+      clienteSel.style.background = '#f3f6f5';
+    } else {
+      clienteSel.removeAttribute('title');
+      clienteSel.style.pointerEvents = '';
+      clienteSel.style.background = '';
+    }
+  }
+
+  if (mascotaSel && clienteSel) {
+    var todasLasMascotas = Array.prototype.slice.call(mascotaSel.options);
+    var filtrarMascotas = function () {
+      var cliente = clienteSel.value;
+      var actual = mascotaSel.value;
+      mascotaSel.innerHTML = '';
+      todasLasMascotas.forEach(function (opcion) {
+        var clienteOpcion = opcion.getAttribute('data-cliente');
+        if (!opcion.value || !cliente || clienteOpcion === cliente) {
+          mascotaSel.appendChild(opcion.cloneNode(true));
+        }
+      });
+      var sigueValida = Array.prototype.some.call(mascotaSel.options, function (o) { return o.value === actual; });
+      mascotaSel.value = sigueValida ? actual : '';
+    };
+    clienteSel.addEventListener('change', filtrarMascotas);
+    filtrarMascotas();
+  }
+
+  if (mascotaSel && servicioSel) {
+    var todosLosServicios = Array.prototype.slice.call(servicioSel.options);
+    var filtrarServicios = function () {
+      var opcionMascota = mascotaSel.options[mascotaSel.selectedIndex];
+      var tallaMascota = opcionMascota ? opcionMascota.getAttribute('data-talla') : null;
+      var actual = servicioSel.value;
+      servicioSel.innerHTML = '';
+      todosLosServicios.forEach(function (opcion) {
+        var tallaServicio = opcion.getAttribute('data-talla');
+        if (!opcion.value || !tallaMascota || !tallaServicio || tallaServicio === tallaMascota) {
+          servicioSel.appendChild(opcion.cloneNode(true));
+        }
+      });
+      var sigueValido = Array.prototype.some.call(servicioSel.options, function (o) { return o.value === actual; });
+      servicioSel.value = sigueValido ? actual : '';
+    };
+    mascotaSel.addEventListener('change', filtrarServicios);
+    filtrarServicios();
+  }
+
+  function money(n) { return '$' + (Math.round(n * 100) / 100).toFixed(2); }
+
+  function renderCarrito() {
+    var tbody = document.getElementById('cart-rows');
+    tbody.innerHTML = '';
+    if (carrito.length === 0) {
+      var vacio = document.createElement('tr');
+      vacio.innerHTML = '<td colspan="6" style="text-align:center;color:#9aaba7;padding:20px;">El carrito está vacío. Agrega un servicio o producto.</td>';
+      tbody.appendChild(vacio);
+    }
+    var subtotal = 0;
+    carrito.forEach(function (item, idx) {
+      var lineTotal = item.precio * item.cantidad;
+      subtotal += lineTotal;
+      var tr = document.createElement('tr');
+      var tipoLabel = item.tipo === 'servicio'
+        ? '<i class="bi bi-scissors" style="color:var(--brand);"></i> Servicio'
+        : '<i class="bi bi-box-seam" style="color:var(--brand);"></i> Producto';
+      var detalle = item.tipo === 'servicio' ? (item.detalle + ' · ' + item.mascotaNombre) : item.detalle;
+      tr.innerHTML = '<td>' + tipoLabel + '</td><td style="font-weight:700;color:var(--ink);">' + detalle +
+        '</td><td>' + item.cantidad + '</td><td>' + money(item.precio) + '</td><td style="font-weight:700;">' + money(lineTotal) +
+        '</td><td class="text-end"></td>';
+      var btnQuitar = document.createElement('button');
+      btnQuitar.type = 'button';
+      btnQuitar.className = 'gr-iconbtn del';
+      btnQuitar.title = 'Quitar';
+      btnQuitar.innerHTML = '<i class="bi bi-x-lg"></i>';
+      btnQuitar.addEventListener('click', function () {
+        carrito.splice(idx, 1);
+        renderCarrito();
+      });
+      tr.lastElementChild.appendChild(btnQuitar);
+      tbody.appendChild(tr);
+    });
+
+    var iva = subtotal * 0.15;
+    document.getElementById('cart-subtotal').textContent = money(subtotal);
+    document.getElementById('cart-iva').textContent = money(iva);
+    document.getElementById('cart-total').textContent = money(subtotal + iva);
+
+    var contenedor = document.getElementById('cart-inputs');
+    contenedor.innerHTML = '';
+    carrito.forEach(function (item) {
+      if (item.tipo === 'servicio') {
+        contenedor.appendChild(hiddenInput('srv_mascota', item.mascotaId));
+        contenedor.appendChild(hiddenInput('srv_servicio', item.servicioId));
+      } else {
+        contenedor.appendChild(hiddenInput('prod_id', item.productoId));
+        contenedor.appendChild(hiddenInput('prod_cantidad', item.cantidad));
+      }
+    });
+
+    actualizarClienteBloqueado();
+  }
+
+  function hiddenInput(name, value) {
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = value;
+    return input;
+  }
+
+  var btnAgregarServicio = document.getElementById('btnAgregarServicio');
+  if (btnAgregarServicio) {
+    btnAgregarServicio.addEventListener('click', function () {
+      var mOpt = mascotaSel.options[mascotaSel.selectedIndex];
+      var sOpt = servicioSel.options[servicioSel.selectedIndex];
+      if (!mOpt || !mOpt.value || !sOpt || !sOpt.value) {
+        alert('Selecciona una mascota y un servicio.');
+        return;
+      }
+      if (!clienteSel.value) {
+        clienteSel.value = mOpt.getAttribute('data-cliente');
+      }
+      carrito.push({
+        tipo: 'servicio',
+        mascotaId: mOpt.value,
+        mascotaNombre: mOpt.getAttribute('data-nombre'),
+        servicioId: sOpt.value,
+        detalle: sOpt.getAttribute('data-nombre'),
+        cantidad: 1,
+        precio: parseFloat(sOpt.getAttribute('data-precio')) || 0,
+      });
+      servicioSel.value = '';
+      renderCarrito();
+    });
+  }
+
+  var btnAgregarProducto = document.getElementById('btnAgregarProducto');
+  if (btnAgregarProducto) {
+    btnAgregarProducto.addEventListener('click', function () {
+      var pOpt = productoSel.options[productoSel.selectedIndex];
+      var cantidad = parseInt(cantidadInput.value, 10) || 0;
+      if (!pOpt || !pOpt.value || cantidad < 1) {
+        alert('Selecciona un producto y una cantidad válida.');
+        return;
+      }
+      var stock = parseInt(pOpt.getAttribute('data-stock'), 10) || 0;
+      var yaEnCarrito = carrito
+        .filter(function (item) { return item.tipo === 'producto' && item.productoId === pOpt.value; })
+        .reduce(function (acc, item) { return acc + item.cantidad; }, 0);
+      if (yaEnCarrito + cantidad > stock) {
+        alert('No hay stock suficiente. Disponible: ' + (stock - yaEnCarrito));
+        return;
+      }
+      carrito.push({
+        tipo: 'producto',
+        productoId: pOpt.value,
+        detalle: pOpt.getAttribute('data-nombre'),
+        cantidad: cantidad,
+        precio: parseFloat(pOpt.getAttribute('data-precio')) || 0,
+      });
+      cantidadInput.value = 1;
+      renderCarrito();
+    });
+  }
+
+  document.getElementById('formVenta').addEventListener('submit', function (e) {
+    if (carrito.length === 0) {
+      e.preventDefault();
+      alert('Agrega al menos un servicio o producto al carrito.');
+    }
+  });
+
+  renderCarrito();
+});
+</script>
+{% endblock %}

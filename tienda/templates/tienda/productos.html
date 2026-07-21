@@ -1,0 +1,132 @@
+{% extends 'tienda/base.html' %}
+
+{% block title %}Productos · PetGroom{% endblock %}
+{% block crumb %}Inicio / Productos{% endblock %}
+{% block heading %}Productos{% endblock %}
+
+{% block topbar_extra %}
+<form method="get" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+  <div style="position:relative;">
+    <i class="bi bi-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#a9b8b5;"></i>
+    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Buscar por nombre…" style="padding-left:40px;width:230px;background:#fff;border-color:#e6efec;">
+  </div>
+  <select name="categoria" class="form-select" style="width:190px;background:#fff;border-color:#e6efec;">
+    <option value="">Todas las categorías</option>
+    {% for cat in categorias %}
+    <option value="{{ cat.id_categoria }}" {% if categoria_sel == cat.id_categoria|stringformat:"s" %}selected{% endif %}>{{ cat.nombre_categoria }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-brand" style="border-radius:12px;padding:9px 18px;font-weight:700;"><i class="bi bi-funnel" style="margin-right:6px;"></i>Filtrar</button>
+</form>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+  <div><div class="gr-h" style="font-size:1.15rem;">Catálogo de productos</div><div style="font-size:.85rem;color:#9aaba7;">{{ productos|length }} producto(s)</div></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <button class="btn btn-light" style="border-radius:12px;padding:9px 18px;font-weight:700;border:1px solid #e6efec;" data-bs-toggle="modal" data-bs-target="#modalCategorias"><i class="bi bi-tags" style="margin-right:6px;"></i>Categorías</button>
+    <button class="btn btn-brand" style="border-radius:12px;padding:9px 18px;" data-bs-toggle="modal" data-bs-target="#modalProducto"><i class="bi bi-plus-lg" style="margin-right:6px;"></i>Nuevo Producto</button>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:20px;">
+  {% for p in productos %}
+  <div class="gr-card" style="overflow:hidden;box-shadow:0 12px 34px -24px rgba(38,74,69,.35);">
+    <div style="position:relative;height:110px;background:{{ p.color }}22;display:flex;align-items:center;justify-content:center;">
+      <i class="bi bi-box-seam" style="font-size:2.3rem;color:{{ p.color }};"></i>
+      {% if p.stock_bajo %}<span style="position:absolute;top:10px;right:10px;background:#d9534f;color:#fff;padding:5px 10px;border-radius:999px;font-weight:700;font-size:.68rem;">Stock bajo</span>{% endif %}
+    </div>
+    <div style="padding:16px;">
+      {% if p.id_categoria %}<span class="badge rounded-pill" style="background:#eef3f1;color:#5a6f6b;padding:5px 11px;font-weight:700;font-size:.7rem;margin-bottom:8px;display:inline-block;">{{ p.id_categoria.nombre_categoria }}</span>{% endif %}
+      <div style="font-weight:800;color:var(--ink);font-size:1rem;margin-bottom:2px;line-height:1.25;">{{ p.nombre_producto|default:"—" }}</div>
+      <div style="font-size:.78rem;color:#9aaba7;margin-bottom:10px;">Costo ref.: {% if p.precio_costo_referencial %}${{ p.precio_costo_referencial }}{% else %}—{% endif %}</div>
+      <div style="font-weight:800;color:var(--brand-d);font-size:1.2rem;">{% if p.precio_venta_actual %}${{ p.precio_venta_actual }}{% else %}—{% endif %}</div>
+      <div style="font-size:.8rem;color:{% if p.stock_bajo %}#cf4646{% else %}#5a6f6b{% endif %};margin-top:6px;"><i class="bi bi-box2" style="margin-right:6px;"></i>Stock: {{ p.stock_actual|default:"0" }}{% if p.stock_minimo is not None %} (mín. {{ p.stock_minimo }}){% endif %}</div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <a class="gr-iconbtn" href="{% url 'tienda:producto_editar' p.id_producto %}" title="Editar"><i class="bi bi-pencil"></i></a>
+        <form method="post" action="{% url 'tienda:producto_eliminar' p.id_producto %}" onsubmit="return confirm('¿Eliminar {{ p.nombre_producto|escapejs }}?');" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="gr-iconbtn del" title="Eliminar"><i class="bi bi-trash3"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="gr-card" style="grid-column:1/-1;text-align:center;color:#9aaba7;padding:40px;">No hay productos registrados todavía.</div>
+  {% endfor %}
+</div>
+
+<div class="modal fade" id="modalProducto" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border:none;border-radius:20px;">
+      <form method="post" action="{% if editing %}{% url 'tienda:producto_editar' editing.id_producto %}{% else %}{% url 'tienda:productos' %}{% endif %}">
+        {% csrf_token %}
+        <div class="modal-header" style="border-bottom:1px solid #eef3f1;padding:22px 26px;">
+          <h5 class="modal-title gr-h">{% if editing %}Editar Producto{% else %}Nuevo Producto{% endif %}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" style="padding:26px;">
+          {% if form.non_field_errors %}<div class="alert alert-danger" style="border-radius:12px;">{{ form.non_field_errors }}</div>{% endif %}
+          <div class="row g-3">
+            <div class="col-12">
+              {{ form.nombre_producto.label_tag }}
+              {{ form.nombre_producto }}
+              {% if form.nombre_producto.errors %}<div class="text-danger" style="font-size:.8rem;">{{ form.nombre_producto.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-12">{{ form.id_categoria.label_tag }} {{ form.id_categoria }}</div>
+            <div class="col-md-6">{{ form.precio_venta_actual.label_tag }} {{ form.precio_venta_actual }}</div>
+            <div class="col-md-6">{{ form.precio_costo_referencial.label_tag }} {{ form.precio_costo_referencial }}</div>
+            <div class="col-md-6">{{ form.stock_actual.label_tag }} {{ form.stock_actual }}</div>
+            <div class="col-md-6">{{ form.stock_minimo.label_tag }} {{ form.stock_minimo }}</div>
+          </div>
+        </div>
+        <div class="modal-footer" style="border-top:1px solid #eef3f1;padding:18px 26px;">
+          <button type="button" class="btn btn-light" style="border-radius:12px;font-weight:700;" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-brand" style="border-radius:12px;">{% if editing %}Guardar Cambios{% else %}Guardar Producto{% endif %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalCategorias" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border:none;border-radius:20px;">
+      <div class="modal-header" style="border-bottom:1px solid #eef3f1;padding:22px 26px;">
+        <h5 class="modal-title gr-h">Categorías de productos</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding:26px;">
+        <div style="display:flex;flex-direction:column;gap:8px;max-height:220px;overflow:auto;margin-bottom:18px;">
+          {% for cat in categorias %}
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border:1px solid #eef3f1;border-radius:10px;">
+            <span style="font-weight:700;color:var(--ink);">{{ cat.nombre_categoria }}</span>
+            <form method="post" action="{% url 'tienda:categoria_eliminar' cat.id_categoria %}" onsubmit="return confirm('¿Eliminar la categoría {{ cat.nombre_categoria|escapejs }}?');">
+              {% csrf_token %}
+              <button type="submit" class="gr-iconbtn del" title="Eliminar" style="width:28px;height:28px;"><i class="bi bi-trash3" style="font-size:.85rem;"></i></button>
+            </form>
+          </div>
+          {% empty %}
+          <div style="color:#9aaba7;font-size:.85rem;">No hay categorías todavía.</div>
+          {% endfor %}
+        </div>
+        <form method="post" action="{% url 'tienda:categoria_crear' %}" style="display:flex;gap:8px;">
+          {% csrf_token %}
+          {{ categoria_form.nombre_categoria }}
+          <button type="submit" class="btn btn-brand" style="border-radius:12px;white-space:nowrap;">Agregar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if form.errors or editing %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  new bootstrap.Modal(document.getElementById('modalProducto')).show();
+});
+</script>
+{% endif %}
+{% endblock %}

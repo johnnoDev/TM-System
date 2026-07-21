@@ -1,31 +1,28 @@
 import datetime
 
 from django.contrib import messages
-from django.db import DatabaseError
+from django.db import DatabaseError, transaction
 from django.db.models import Count, F, Max, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
-from .forms import CitaForm, ClienteForm, MascotaForm
-from .models import TmMCliente, TmMMascota, TmPTipopago, TmTDetallereserva, TmTFactura, TmTReserva
+from .forms import CategoriaForm, ClienteForm, MascotaForm, ProductoForm
+from .models import (
+    TmMCliente, TmMMascota, TmMProducto, TmMServicio, TmPCategoria, TmPTipopago, TmTDetallereserva,
+    TmTDetalleventa, TmTFactura, TmTReserva, TmTVenta,
+)
 
 PALETTE = ['#3aa89a', '#5b8fd8', '#d98a5b', '#9b6cc9', '#c9a85b', '#e08a5b']
 
-BADGE_MAP = {
-    'Pendiente': 'background:#fbeed3;color:#bd8623',
-    'Completado': 'background:#d8f0e4;color:#1f8a5b',
-    'Cancelado': 'background:#fbe0e0;color:#cf4646',
+FACTURA_BADGE_MAP = {
+    'Emitida': 'background:#d8f0e4;color:#1f8a5b',
+    'Anulada': 'background:#fbe0e0;color:#cf4646',
 }
 
 PERIODOS = {'dia': 'Hoy', 'semana': 'Esta semana', 'mes': 'Este mes'}
 
 IVA_PORCENTAJE = 15
-
-
-def _con_badges(detalles):
-    for d in detalles:
-        d.badge_style = BADGE_MAP.get(d.estado, 'background:#eef3f1;color:#5a6f6b')
-    return detalles
 
 
 def _rango_periodo(periodo, hoy):
@@ -48,14 +45,85 @@ def _precio_servicio(servicio):
     return servicio.precio_base
 
 
-def _facturar_reserva(reserva, tipo_pago):
-    detalles = TmTDetallereserva.objects.filter(id_reserva=reserva).exclude(estado='Cancelado')
-    subtotal = sum((d.precio_aplicado or 0) * (d.cantidad or 1) for d in detalles)
+def _parse_fecha_local(valor):
+    if not valor:
+        return None
+    fecha = parse_datetime(valor)
+    if fecha and timezone.is_naive(fecha):
+        fecha = timezone.make_aware(fecha)
+    return fecha
+
+
+def _registrar_venta(cliente, tipo_pago, fecha_servicio, srv_mascotas, srv_servicios, prod_ids, prod_cantidades):
+    items_servicio = []
+    for mascota_id, servicio_id in zip(srv_mascotas, srv_servicios):
+        mascota = TmMMascota.objects.filter(pk=mascota_id).first()
+        servicio = TmMServicio.objects.select_related('id_tarifa_servicio').filter(pk=servicio_id).first()
+        if mascota is None or servicio is None:
+            raise ValueError('Uno de los servicios del carrito ya no existe.')
+        if mascota.id_cliente_id != cliente.id_cliente:
+            raise ValueError(f'{mascota.nombre} no pertenece al cliente seleccionado.')
+        items_servicio.append((mascota, servicio))
+
+    items_producto = []
+    for producto_id, cantidad_raw in zip(prod_ids, prod_cantidades):
+        producto = TmMProducto.objects.filter(pk=producto_id).first()
+        if producto is None:
+            raise ValueError('Uno de los productos del carrito ya no existe.')
+        try:
+            cantidad = int(cantidad_raw)
+        except (TypeError, ValueError):
+            cantidad = 0
+        if cantidad <= 0:
+            raise ValueError(f'Cantidad inválida para {producto.nombre_producto}.')
+        actualizados = TmMProducto.objects.filter(pk=producto.pk, stock_actual__gte=cantidad).update(
+            stock_actual=F('stock_actual') - cantidad
+        )
+        if not actualizados:
+            raise ValueError(f'Stock insuficiente para {producto.nombre_producto}.')
+        items_producto.append((producto, cantidad))
+
+    subtotal = 0
+
+    reserva = None
+    if items_servicio:
+        fecha_reserva = _parse_fecha_local(fecha_servicio) or timezone.now()
+        reserva = TmTReserva.objects.create(id_cliente=cliente, fecha_hora_reserva=fecha_reserva, estado='Completado')
+        for mascota, servicio in items_servicio:
+            precio = _precio_servicio(servicio)
+            subtotal += precio
+            TmTDetallereserva.objects.create(
+                id_reserva=reserva,
+                id_mascota=mascota,
+                id_servicio=servicio,
+                cantidad=1,
+                precio_aplicado=precio,
+                duracion_estimada_min=servicio.duracion_estimada_min,
+                estado='Completado',
+            )
+
+    venta_obj = None
+    if items_producto:
+        venta_obj = TmTVenta.objects.create(fecha_hora_venta=timezone.now(), total_venta=0)
+        total_productos = 0
+        for producto, cantidad in items_producto:
+            precio_unitario = producto.precio_venta_actual or 0
+            total_productos += precio_unitario * cantidad
+            TmTDetalleventa.objects.create(
+                id_venta=venta_obj,
+                id_producto=producto,
+                cantidad=cantidad,
+                precio_unitario=precio_unitario,
+            )
+        venta_obj.total_venta = total_productos
+        venta_obj.save(update_fields=['total_venta'])
+        subtotal += total_productos
+
     iva = round(subtotal * IVA_PORCENTAJE / 100, 2)
     total = subtotal + iva
 
     factura = TmTFactura.objects.create(
-        id_cliente=reserva.id_cliente,
+        id_cliente=cliente,
         fecha_emision=timezone.now(),
         subtotal=subtotal,
         iva=iva,
@@ -65,7 +133,15 @@ def _facturar_reserva(reserva, tipo_pago):
     )
     factura.numero_factura = f'F-{factura.id_factura:06d}'
     factura.save(update_fields=['numero_factura'])
-    reserva.id_factura = factura
+
+    if reserva:
+        reserva.id_factura = factura
+        reserva.save(update_fields=['id_factura'])
+    if venta_obj:
+        venta_obj.id_factura = factura
+        venta_obj.save(update_fields=['id_factura'])
+
+    return factura
 
 
 def _iniciales(nombre):
@@ -201,128 +277,178 @@ def mascota_eliminar(request, pk):
     return redirect('tienda:mascotas')
 
 
-def citas(request):
+def productos(request):
     if request.method == 'POST':
-        form = CitaForm(request.POST)
+        form = ProductoForm(request.POST)
         if form.is_valid():
-            mascota = form.cleaned_data['id_mascota']
-            servicio = form.cleaned_data['id_servicio']
-            fecha = form.cleaned_data['fecha_hora_reserva']
-
-            reserva = TmTReserva.objects.create(
-                id_cliente=mascota.id_cliente,
-                fecha_hora_reserva=fecha,
-                estado='Pendiente',
-            )
-
-            TmTDetallereserva.objects.create(
-                id_reserva=reserva,
-                id_mascota=mascota,
-                id_servicio=servicio,
-                cantidad=1,
-                precio_aplicado=_precio_servicio(servicio),
-                duracion_estimada_min=servicio.duracion_estimada_min,
-                estado='Pendiente',
-            )
-            messages.success(request, 'Cita agendada correctamente.')
-            return redirect('tienda:citas')
+            form.save()
+            messages.success(request, 'Producto guardado correctamente.')
+            return redirect('tienda:productos')
     else:
-        form = CitaForm()
+        form = ProductoForm()
 
-    detalles = _con_badges(TmTDetallereserva.objects
-                            .select_related('id_reserva', 'id_mascota', 'id_servicio')
-                            .order_by('-id_reserva__fecha_hora_reserva'))
+    qs = TmMProducto.objects.select_related('id_categoria').order_by('nombre_producto')
+    q = request.GET.get('q', '').strip()
+    if q:
+        qs = qs.filter(nombre_producto__icontains=q)
+    categoria_sel = request.GET.get('categoria', '').strip()
+    if categoria_sel:
+        qs = qs.filter(id_categoria_id=categoria_sel)
+    qs = list(qs)
+    for i, p in enumerate(qs):
+        p.color = PALETTE[i % len(PALETTE)]
+        p.stock_bajo = (
+            p.stock_actual is not None and p.stock_minimo is not None and p.stock_actual <= p.stock_minimo
+        )
 
-    return render(request, 'tienda/citas.html', {
+    return render(request, 'tienda/productos.html', {
         'form': form,
-        'detalles': detalles,
-        'tipos_pago': TmPTipopago.objects.order_by('nombre'),
-        'active_view': 'citas',
+        'categoria_form': CategoriaForm(),
+        'productos': qs,
+        'categorias': TmPCategoria.objects.order_by('nombre_categoria'),
+        'q': q,
+        'categoria_sel': categoria_sel,
+        'active_view': 'productos',
     })
 
 
-def cita_editar(request, pk):
-    detalle = get_object_or_404(
-        TmTDetallereserva.objects.select_related('id_reserva', 'id_mascota', 'id_servicio'), pk=pk
-    )
+def producto_editar(request, pk):
+    producto = get_object_or_404(TmMProducto, pk=pk)
     if request.method == 'POST':
-        form = CitaForm(request.POST)
+        form = ProductoForm(request.POST, instance=producto)
         if form.is_valid():
-            mascota = form.cleaned_data['id_mascota']
-            servicio = form.cleaned_data['id_servicio']
-            fecha = form.cleaned_data['fecha_hora_reserva']
-
-            detalle.id_mascota = mascota
-            detalle.id_servicio = servicio
-            detalle.precio_aplicado = _precio_servicio(servicio)
-            detalle.duracion_estimada_min = servicio.duracion_estimada_min
-            detalle.save()
-
-            if detalle.id_reserva:
-                detalle.id_reserva.fecha_hora_reserva = fecha
-                detalle.id_reserva.id_cliente = mascota.id_cliente
-                detalle.id_reserva.save()
-
-            messages.success(request, 'Cita actualizada correctamente.')
-            return redirect('tienda:citas')
+            form.save()
+            messages.success(request, 'Producto actualizado correctamente.')
+            return redirect('tienda:productos')
     else:
-        form = CitaForm(initial={
-            'id_mascota': detalle.id_mascota_id,
-            'id_servicio': detalle.id_servicio_id,
-            'fecha_hora_reserva': detalle.id_reserva.fecha_hora_reserva if detalle.id_reserva else None,
-        })
+        form = ProductoForm(instance=producto)
 
-    detalles = _con_badges(TmTDetallereserva.objects
-                            .select_related('id_reserva', 'id_mascota', 'id_servicio')
-                            .order_by('-id_reserva__fecha_hora_reserva'))
+    qs = TmMProducto.objects.select_related('id_categoria').order_by('nombre_producto')
+    qs = list(qs)
+    for i, p in enumerate(qs):
+        p.color = PALETTE[i % len(PALETTE)]
+        p.stock_bajo = (
+            p.stock_actual is not None and p.stock_minimo is not None and p.stock_actual <= p.stock_minimo
+        )
 
-    return render(request, 'tienda/citas.html', {
+    return render(request, 'tienda/productos.html', {
         'form': form,
-        'detalles': detalles,
-        'editing': detalle,
-        'tipos_pago': TmPTipopago.objects.order_by('nombre'),
-        'active_view': 'citas',
+        'categoria_form': CategoriaForm(),
+        'productos': qs,
+        'categorias': TmPCategoria.objects.order_by('nombre_categoria'),
+        'editing': producto,
+        'active_view': 'productos',
     })
 
 
-def cita_estado(request, pk):
-    detalle = get_object_or_404(TmTDetallereserva.objects.select_related('id_reserva'), pk=pk)
-    estado = request.POST.get('estado')
-    if request.method == 'POST' and estado in BADGE_MAP:
-        reserva = detalle.id_reserva
-
-        if estado == 'Completado' and reserva and reserva.id_factura_id is None:
-            tipo_pago = TmPTipopago.objects.filter(pk=request.POST.get('id_tipo_pago')).first()
-            if tipo_pago is None:
-                messages.error(request, 'Selecciona una forma de pago para completar y facturar la cita.')
-                return redirect('tienda:citas')
-            _facturar_reserva(reserva, tipo_pago)
-
-        detalle.estado = estado
-        detalle.save()
-        if reserva:
-            reserva.estado = estado
-            reserva.save()
-
-        if estado == 'Completado':
-            messages.success(request, f'Cita completada. Factura {reserva.id_factura.numero_factura} generada.')
-        else:
-            messages.success(request, f'Cita marcada como {estado}.')
-    return redirect('tienda:citas')
-
-
-def cita_eliminar(request, pk):
-    detalle = get_object_or_404(TmTDetallereserva.objects.select_related('id_reserva'), pk=pk)
+def producto_eliminar(request, pk):
+    producto = get_object_or_404(TmMProducto, pk=pk)
     if request.method == 'POST':
-        reserva = detalle.id_reserva
         try:
-            detalle.delete()
-            if reserva and not TmTDetallereserva.objects.filter(id_reserva=reserva).exists():
-                reserva.delete()
-            messages.success(request, 'Cita eliminada.')
+            producto.delete()
+            messages.success(request, 'Producto eliminado.')
         except DatabaseError:
-            messages.error(request, 'No se puede eliminar esta cita.')
-    return redirect('tienda:citas')
+            messages.error(request, 'No se puede eliminar: el producto tiene compras o ventas asociadas.')
+    return redirect('tienda:productos')
+
+
+def categoria_crear(request):
+    if request.method == 'POST':
+        form = CategoriaForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Categoría creada correctamente.')
+        else:
+            messages.error(request, 'No se pudo crear la categoría: revisa los datos.')
+    return redirect('tienda:productos')
+
+
+def categoria_eliminar(request, pk):
+    categoria = get_object_or_404(TmPCategoria, pk=pk)
+    if request.method == 'POST':
+        try:
+            categoria.delete()
+            messages.success(request, 'Categoría eliminada.')
+        except DatabaseError:
+            messages.error(request, 'No se puede eliminar: hay productos asociados a esta categoría.')
+    return redirect('tienda:productos')
+
+
+def venta(request):
+    if request.method == 'POST':
+        cliente = TmMCliente.objects.filter(pk=request.POST.get('cliente')).first()
+        tipo_pago = TmPTipopago.objects.filter(pk=request.POST.get('id_tipo_pago')).first()
+        fecha_servicio = request.POST.get('fecha_servicio')
+        srv_mascotas = request.POST.getlist('srv_mascota')
+        srv_servicios = request.POST.getlist('srv_servicio')
+        prod_ids = request.POST.getlist('prod_id')
+        prod_cantidades = request.POST.getlist('prod_cantidad')
+
+        if cliente is None:
+            messages.error(request, 'Selecciona un cliente.')
+            return redirect('tienda:venta')
+        if tipo_pago is None:
+            messages.error(request, 'Selecciona una forma de pago.')
+            return redirect('tienda:venta')
+        if not srv_mascotas and not prod_ids:
+            messages.error(request, 'Agrega al menos un servicio o producto al carrito.')
+            return redirect('tienda:venta')
+
+        try:
+            with transaction.atomic():
+                factura = _registrar_venta(
+                    cliente, tipo_pago, fecha_servicio, srv_mascotas, srv_servicios, prod_ids, prod_cantidades
+                )
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect('tienda:venta')
+
+        messages.success(request, f'Venta registrada. Factura {factura.numero_factura} por ${factura.total}.')
+        return redirect('tienda:venta')
+
+    servicios = list(TmMServicio.objects.select_related('id_tarifa_servicio').order_by('nombre_servicio'))
+    for s in servicios:
+        s.precio_actual = _precio_servicio(s)
+        s.talla_tarifa = s.id_tarifa_servicio.talla if (s.id_tarifa_servicio_id and s.id_tarifa_servicio.talla) else ''
+
+    historial = (TmTFactura.objects
+                 .select_related('id_cliente', 'id_tipo_pago')
+                 .prefetch_related(
+                     'tmtreserva_set__tmtdetallereserva_set__id_servicio',
+                     'tmtreserva_set__tmtdetallereserva_set__id_mascota',
+                     'tmtventa_set__tmtdetalleventa_set__id_producto',
+                 )
+                 .order_by('-fecha_emision')[:30])
+    for f in historial:
+        f.badge_style = FACTURA_BADGE_MAP.get(f.estado, 'background:#eef3f1;color:#5a6f6b')
+
+    return render(request, 'tienda/venta.html', {
+        'clientes': TmMCliente.objects.order_by('nombre_razon_social'),
+        'mascotas': TmMMascota.objects.select_related('id_cliente').order_by('nombre'),
+        'servicios': servicios,
+        'productos': TmMProducto.objects.filter(stock_actual__gt=0).order_by('nombre_producto'),
+        'tipos_pago': TmPTipopago.objects.order_by('nombre'),
+        'historial': historial,
+        'active_view': 'venta',
+    })
+
+
+def factura_anular(request, pk):
+    factura = get_object_or_404(TmTFactura, pk=pk)
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                for venta_obj in TmTVenta.objects.filter(id_factura=factura):
+                    for detalle in TmTDetalleventa.objects.filter(id_venta=venta_obj):
+                        TmMProducto.objects.filter(pk=detalle.id_producto_id).update(
+                            stock_actual=F('stock_actual') + (detalle.cantidad or 0)
+                        )
+                factura.estado = 'Anulada'
+                factura.save(update_fields=['estado'])
+            messages.success(request, 'Factura anulada y stock repuesto.')
+        except DatabaseError:
+            messages.error(request, 'No se pudo anular la factura.')
+    return redirect('tienda:venta')
 
 
 def reportes(request):
@@ -343,6 +469,13 @@ def reportes(request):
         .order_by('-cantidad_citas')
     )
     total_citas_periodo = sum(row['cantidad_citas'] for row in servicios_periodo)
+
+    total_facturado_periodo = (
+        TmTFactura.objects
+        .filter(fecha_emision__gte=inicio_dt, fecha_emision__lt=fin_dt)
+        .exclude(estado='Anulada')
+        .aggregate(total=Sum('total'))['total'] or 0
+    )
 
     mascotas_qs = TmMMascota.objects.select_related('id_cliente', 'id_raza').order_by('nombre')
 
@@ -371,6 +504,18 @@ def reportes(request):
         row['pct'] = int((row['total'] / max_monto) * 100) if max_monto else 0
     total_general = sum((row['total'] or 0) for row in ingresos)
 
+    productos_vendidos = list(
+        TmTDetalleventa.objects
+        .exclude(id_producto__isnull=True)
+        .values('id_producto__nombre_producto')
+        .annotate(cantidad_vendida=Sum('cantidad'), total=Sum(F('precio_unitario') * F('cantidad')))
+        .order_by('-total')
+    )
+    max_monto_prod = productos_vendidos[0]['total'] if productos_vendidos else None
+    for row in productos_vendidos:
+        row['pct'] = int((row['total'] / max_monto_prod) * 100) if max_monto_prod else 0
+    total_general_productos = sum((row['total'] or 0) for row in productos_vendidos)
+
     frecuentes = (TmMCliente.objects
                   .annotate(visitas=Count('tmtreserva', distinct=True),
                             num_mascotas=Count('tmmmascota', distinct=True))
@@ -389,11 +534,14 @@ def reportes(request):
         'periodos': PERIODOS,
         'servicios_periodo': servicios_periodo,
         'total_citas_periodo': total_citas_periodo,
+        'total_facturado_periodo': total_facturado_periodo,
         'mascotas': mascotas_qs,
         'mascota_sel': mascota_sel,
         'historial': historial,
         'ingresos': ingresos,
         'total_general': total_general,
+        'productos_vendidos': productos_vendidos,
+        'total_general_productos': total_general_productos,
         'frecuentes': frecuentes,
         'inactivas': inactivas,
         'hoy': timezone.localdate(),

@@ -1,6 +1,10 @@
 from django import forms
+from django.utils import timezone
 
-from .models import TmMCliente, TmMMascota, TmMServicio, TmPCiudad, TmPEspecie, TmPProvincia, TmPRaza, TmPTipocliente
+from .models import (
+    TmMCliente, TmMMascota, TmMProducto, TmPCategoria, TmPCiudad, TmPEspecie, TmPProvincia, TmPRaza,
+    TmPTipocliente,
+)
 
 
 class CiudadSelect(forms.Select):
@@ -32,38 +36,6 @@ class RazaSelect(forms.Select):
         especie_id = self.especie_map.get(str(raw_value)) if raw_value else None
         if especie_id:
             option['attrs']['data-especie'] = str(especie_id)
-        return option
-
-
-class ServicioSelect(forms.Select):
-    """Select de servicio que anota cada <option> con su talla (si aplica) para filtrado en cascada por JS."""
-
-    def __init__(self, talla_map=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.talla_map = talla_map or {}
-
-    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
-        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
-        raw_value = value.value if hasattr(value, 'value') else value
-        talla = self.talla_map.get(str(raw_value)) if raw_value else None
-        if talla:
-            option['attrs']['data-talla'] = talla
-        return option
-
-
-class MascotaSelect(forms.Select):
-    """Select de mascota que anota cada <option> con su talla para filtrado en cascada por JS."""
-
-    def __init__(self, talla_map=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.talla_map = talla_map or {}
-
-    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
-        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
-        raw_value = value.value if hasattr(value, 'value') else value
-        talla = self.talla_map.get(str(raw_value)) if raw_value else None
-        if talla:
-            option['attrs']['data-talla'] = talla
         return option
 
 
@@ -171,39 +143,64 @@ class MascotaForm(forms.ModelForm):
                 field.widget.attrs['class'] = (css + ' form-control').strip()
 
 
-class CitaForm(forms.Form):
-    id_mascota = forms.ModelChoiceField(queryset=TmMMascota.objects.none(), label='Mascota')
-    fecha_hora_reserva = forms.DateTimeField(
-        widget=forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
-        label='Fecha y hora',
-    )
-    id_servicio = forms.ModelChoiceField(queryset=TmMServicio.objects.none(), label='Tipo de servicio')
+class CategoriaForm(forms.ModelForm):
+    class Meta:
+        model = TmPCategoria
+        fields = ['nombre_categoria', 'descripcion']
+        labels = {
+            'nombre_categoria': 'Nombre',
+            'descripcion': 'Descripción',
+        }
+        widgets = {
+            'nombre_categoria': forms.TextInput(attrs={'placeholder': 'Ej. Alimentos', 'class': 'form-control'}),
+            'descripcion': forms.TextInput(attrs={'placeholder': 'Descripción breve (opcional)', 'class': 'form-control'}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        mascotas = list(TmMMascota.objects.select_related('id_cliente').order_by('nombre'))
-        mascota_talla_map = {str(m.id_mascota): m.talla for m in mascotas if m.talla}
+        self.fields['nombre_categoria'].required = True
+        self.fields['descripcion'].required = False
 
-        servicios = list(TmMServicio.objects.select_related('id_tarifa_servicio').order_by('nombre_servicio'))
-        servicio_talla_map = {
-            str(s.id_servicio): s.id_tarifa_servicio.talla
-            for s in servicios if s.id_tarifa_servicio_id and s.id_tarifa_servicio.talla
+
+class ProductoForm(forms.ModelForm):
+    class Meta:
+        model = TmMProducto
+        fields = [
+            'nombre_producto', 'id_categoria', 'precio_venta_actual', 'precio_costo_referencial',
+            'stock_actual', 'stock_minimo',
+        ]
+        labels = {
+            'nombre_producto': 'Nombre del producto',
+            'id_categoria': 'Categoría',
+            'precio_venta_actual': 'Precio de venta',
+            'precio_costo_referencial': 'Costo referencial',
+            'stock_actual': 'Stock actual',
+            'stock_minimo': 'Stock mínimo',
+        }
+        widgets = {
+            'nombre_producto': forms.TextInput(attrs={'placeholder': 'Ej. Alimento premium 10kg'}),
+            'precio_venta_actual': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
+            'precio_costo_referencial': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
+            'stock_actual': forms.NumberInput(attrs={'min': '0'}),
+            'stock_minimo': forms.NumberInput(attrs={'min': '0'}),
         }
 
-        self.fields['id_mascota'].queryset = TmMMascota.objects.select_related('id_cliente').order_by('nombre')
-        self.fields['id_mascota'].widget = MascotaSelect(talla_map=mascota_talla_map, attrs={'class': 'form-select'})
-        self.fields['id_servicio'].queryset = TmMServicio.objects.order_by('nombre_servicio')
-        self.fields['id_servicio'].widget = ServicioSelect(talla_map=servicio_talla_map, attrs={'class': 'form-select'})
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['id_categoria'].queryset = TmPCategoria.objects.order_by('nombre_categoria')
+        self.fields['id_categoria'].required = False
+        self.fields['nombre_producto'].required = True
 
-    def clean(self):
-        cleaned_data = super().clean()
-        mascota = cleaned_data.get('id_mascota')
-        servicio = cleaned_data.get('id_servicio')
-        if mascota and mascota.talla and servicio and servicio.id_tarifa_servicio_id:
-            talla_servicio = servicio.id_tarifa_servicio.talla
-            if talla_servicio and talla_servicio != mascota.talla:
-                self.add_error(
-                    'id_servicio',
-                    f'Este servicio es para talla {talla_servicio}, pero {mascota.nombre} es talla {mascota.talla}.',
-                )
-        return cleaned_data
+        for field in self.fields.values():
+            css = field.widget.attrs.get('class', '')
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs['class'] = (css + ' form-select').strip()
+            else:
+                field.widget.attrs['class'] = (css + ' form-control').strip()
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.ultima_actualizacion = timezone.now()
+        if commit:
+            obj.save()
+        return obj
