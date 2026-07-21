@@ -53,8 +53,24 @@ label.form-label{font-weight:700;font-size:.85rem;color:var(--ink);}
       <a class="gr-navlink {% if active_view == 'venta' %}active{% endif %}" href="{% url 'tienda:venta' %}"><i class="bi bi-cash-coin"></i>Venta</a>
       <a class="gr-navlink {% if active_view == 'compras' %}active{% endif %}" href="{% url 'tienda:compras' %}"><i class="bi bi-bag-plus"></i>Compras</a>
       <a class="gr-navlink {% if active_view == 'reportes' %}active{% endif %}" href="{% url 'tienda:reportes' %}"><i class="bi bi-graph-up-arrow"></i>Reportes</a>
-      <a class="gr-navlink {% if active_view == 'configuracion' or active_view == 'clientes' or active_view == 'mascotas' or active_view == 'productos' or active_view == 'proveedores' %}active{% endif %}" href="{% url 'tienda:configuracion' %}"><i class="bi bi-gear-fill"></i>Configuración</a>
+      <a class="gr-navlink {% if active_view == 'configuracion' or active_view == 'clientes' or active_view == 'mascotas' or active_view == 'productos' or active_view == 'proveedores' or active_view == 'usuarios' or active_view == 'horarios' %}active{% endif %}" href="{% url 'tienda:configuracion' %}"><i class="bi bi-gear-fill"></i>Configuración</a>
     </nav>
+
+    {% if request.usuario %}
+    <div style="margin-top:auto;padding-top:18px;border-top:1px solid #e6efec;">
+      <div style="display:flex;align-items:center;gap:10px;padding:6px 8px 12px;">
+        <div class="gr-avatar" style="background:var(--brand);width:36px;height:36px;font-size:.85rem;">{{ request.usuario.nombre_usuario|slice:":2"|upper }}</div>
+        <div style="min-width:0;">
+          <div style="font-weight:700;color:var(--ink);font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ request.usuario.nombre_usuario }}</div>
+          <div style="font-size:.72rem;color:#9aaba7;">{{ request.usuario.id_cargo.nombre_cargo|default:"Sin cargo" }}</div>
+        </div>
+      </div>
+      <form method="post" action="{% url 'tienda:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="gr-navlink" style="width:100%;border:none;background:none;text-align:left;color:#cf4646;"><i class="bi bi-box-arrow-right"></i>Cerrar sesión</button>
+      </form>
+    </div>
+    {% endif %}
   </aside>
 
   <main class="gr-scroll" style="flex:1;height:100vh;overflow:auto;padding:34px 40px;">

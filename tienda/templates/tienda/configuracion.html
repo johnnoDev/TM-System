@@ -40,5 +40,21 @@
       <a href="{% url 'tienda:proveedores' %}" class="btn btn-brand" style="border-radius:12px;font-weight:700;">Gestionar</a>
     </div>
   </div>
+  <div class="col-md-6 col-lg-3">
+    <div class="gr-card" style="padding:26px;height:100%;">
+      <div class="gr-avatar" style="background:#9b6cc9;width:52px;height:52px;font-size:1.4rem;margin-bottom:14px;"><i class="bi bi-person-badge-fill"></i></div>
+      <div class="gr-h" style="font-size:1.1rem;margin-bottom:6px;">Usuarios</div>
+      <div style="font-size:.85rem;color:#9aaba7;margin-bottom:18px;">Administra los usuarios del sistema y sus cargos.</div>
+      <a href="{% url 'tienda:usuarios' %}" class="btn btn-brand" style="border-radius:12px;font-weight:700;">Gestionar</a>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <div class="gr-card" style="padding:26px;height:100%;">
+      <div class="gr-avatar" style="background:#3aa89a;width:52px;height:52px;font-size:1.4rem;margin-bottom:14px;"><i class="bi bi-clock-fill"></i></div>
+      <div class="gr-h" style="font-size:1.1rem;margin-bottom:6px;">Horarios</div>
+      <div style="font-size:.85rem;color:#9aaba7;margin-bottom:18px;">Administra los turnos del personal.</div>
+      <a href="{% url 'tienda:horarios' %}" class="btn btn-brand" style="border-radius:12px;font-weight:700;">Gestionar</a>
+    </div>
+  </div>
 </div>
 {% endblock %}

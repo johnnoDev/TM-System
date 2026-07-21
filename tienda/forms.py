@@ -1,9 +1,10 @@
 from django import forms
+from django.contrib.auth.hashers import make_password
 from django.utils import timezone
 
 from .models import (
-    TmMCliente, TmMMascota, TmMProducto, TmMProveedor, TmPCategoria, TmPCiudad, TmPEspecie, TmPProvincia, TmPRaza,
-    TmPTipocliente,
+    TmMCliente, TmMHorario, TmMMascota, TmMProducto, TmMProveedor, TmMUsuario, TmPCargo, TmPCategoria, TmPCiudad,
+    TmPEspecie, TmPProvincia, TmPRaza, TmPTipocliente,
 )
 
 
@@ -251,3 +252,113 @@ class ProductoForm(forms.ModelForm):
         if commit:
             obj.save()
         return obj
+
+
+class LoginForm(forms.Form):
+    nombre_usuario = forms.CharField(
+        label='Usuario',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de usuario', 'autofocus': True}),
+    )
+    password = forms.CharField(
+        label='Contraseña',
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Contraseña'}),
+    )
+
+
+class CargoForm(forms.ModelForm):
+    class Meta:
+        model = TmPCargo
+        fields = ['nombre_cargo', 'descripcion']
+        labels = {
+            'nombre_cargo': 'Nombre',
+            'descripcion': 'Descripción',
+        }
+        widgets = {
+            'nombre_cargo': forms.TextInput(attrs={'placeholder': 'Ej. Cajero', 'class': 'form-control'}),
+            'descripcion': forms.TextInput(attrs={'placeholder': 'Descripción breve (opcional)', 'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['nombre_cargo'].required = True
+        self.fields['descripcion'].required = False
+
+
+class UsuarioForm(forms.ModelForm):
+    password = forms.CharField(
+        label='Contraseña',
+        required=False,
+        widget=forms.PasswordInput(attrs={'placeholder': 'Contraseña'}),
+    )
+    activo = forms.BooleanField(label='Activo', required=False, initial=True)
+
+    class Meta:
+        model = TmMUsuario
+        fields = ['nombre_usuario', 'id_cargo', 'activo']
+        labels = {
+            'nombre_usuario': 'Nombre de usuario',
+            'id_cargo': 'Cargo',
+            'activo': 'Activo',
+        }
+        widgets = {
+            'nombre_usuario': forms.TextInput(attrs={'placeholder': 'Ej. jperez'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['id_cargo'].queryset = TmPCargo.objects.order_by('nombre_cargo')
+        self.fields['id_cargo'].required = False
+        self.fields['nombre_usuario'].required = True
+        self.fields['activo'].required = False
+        if not (self.instance and self.instance.pk):
+            self.fields['password'].required = True
+            self.fields['password'].help_text = 'Obligatoria para un usuario nuevo.'
+        else:
+            self.fields['password'].help_text = 'Deja en blanco para no cambiar la contraseña actual.'
+
+        for name, field in self.fields.items():
+            css = field.widget.attrs.get('class', '')
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs['class'] = (css + ' form-check-input').strip()
+            elif isinstance(field.widget, forms.Select):
+                field.widget.attrs['class'] = (css + ' form-select').strip()
+            else:
+                field.widget.attrs['class'] = (css + ' form-control').strip()
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        password = self.cleaned_data.get('password')
+        if password:
+            obj.contrasena_hash = make_password(password)
+        if commit:
+            obj.save()
+        return obj
+
+
+class HorarioForm(forms.ModelForm):
+    class Meta:
+        model = TmMHorario
+        fields = ['id_usuario', 'fecha', 'hora_inicio', 'hora_fin']
+        labels = {
+            'id_usuario': 'Empleado',
+            'fecha': 'Fecha',
+            'hora_inicio': 'Hora de inicio',
+            'hora_fin': 'Hora de fin',
+        }
+        widgets = {
+            'fecha': forms.DateInput(attrs={'type': 'date'}),
+            'hora_inicio': forms.TimeInput(attrs={'type': 'time'}),
+            'hora_fin': forms.TimeInput(attrs={'type': 'time'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['id_usuario'].queryset = TmMUsuario.objects.order_by('nombre_usuario')
+        self.fields['id_usuario'].required = True
+
+        for field in self.fields.values():
+            css = field.widget.attrs.get('class', '')
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs['class'] = (css + ' form-select').strip()
+            else:
+                field.widget.attrs['class'] = (css + ' form-control').strip()

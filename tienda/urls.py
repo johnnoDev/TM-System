@@ -7,6 +7,8 @@ app_name = 'tienda'
 
 urlpatterns = [
     path('', RedirectView.as_view(pattern_name='tienda:dashboard'), name='home'),
+    path('login/', views.iniciar_sesion, name='login'),
+    path('logout/', views.cerrar_sesion, name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('configuracion/', views.configuracion, name='configuracion'),
     path('clientes/', views.clientes, name='clientes'),
@@ -23,6 +25,14 @@ urlpatterns = [
     path('proveedores/', views.proveedores, name='proveedores'),
     path('proveedores/<int:pk>/editar/', views.proveedor_editar, name='proveedor_editar'),
     path('proveedores/<int:pk>/eliminar/', views.proveedor_eliminar, name='proveedor_eliminar'),
+    path('usuarios/', views.usuarios, name='usuarios'),
+    path('usuarios/<int:pk>/editar/', views.usuario_editar, name='usuario_editar'),
+    path('usuarios/<int:pk>/eliminar/', views.usuario_eliminar, name='usuario_eliminar'),
+    path('usuarios/cargos/nuevo/', views.cargo_crear, name='cargo_crear'),
+    path('usuarios/cargos/<int:pk>/eliminar/', views.cargo_eliminar, name='cargo_eliminar'),
+    path('horarios/', views.horarios, name='horarios'),
+    path('horarios/<int:pk>/editar/', views.horario_editar, name='horario_editar'),
+    path('horarios/<int:pk>/eliminar/', views.horario_eliminar, name='horario_eliminar'),
     path('venta/', views.venta, name='venta'),
     path('venta/<int:pk>/anular/', views.factura_anular, name='factura_anular'),
     path('compras/', views.compras, name='compras'),

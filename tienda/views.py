@@ -1,16 +1,20 @@
 import datetime
 
 from django.contrib import messages
+from django.contrib.auth.hashers import check_password
 from django.db import DatabaseError, transaction
 from django.db.models import Count, F, Max, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from .forms import CategoriaForm, ClienteForm, MascotaForm, ProductoForm, ProveedorForm
+from .forms import (
+    CargoForm, CategoriaForm, ClienteForm, HorarioForm, LoginForm, MascotaForm, ProductoForm, ProveedorForm,
+    UsuarioForm,
+)
 from .models import (
-    TmMCliente, TmMMascota, TmMProducto, TmMProveedor, TmMServicio, TmPCategoria, TmPTipopago, TmTCompra,
-    TmTDetallecompra, TmTDetallereserva, TmTDetalleventa, TmTFactura, TmTReserva, TmTVenta,
+    TmMCliente, TmMHorario, TmMMascota, TmMProducto, TmMProveedor, TmMServicio, TmMUsuario, TmPCargo, TmPCategoria,
+    TmPTipopago, TmTCompra, TmTDetallecompra, TmTDetallereserva, TmTDetalleventa, TmTFactura, TmTReserva, TmTVenta,
 )
 
 PALETTE = ['#3aa89a', '#5b8fd8', '#d98a5b', '#9b6cc9', '#c9a85b', '#e08a5b']
@@ -54,7 +58,7 @@ def _parse_fecha_local(valor):
     return fecha
 
 
-def _registrar_venta(cliente, tipo_pago, fecha_servicio, srv_mascotas, srv_servicios, prod_ids, prod_cantidades):
+def _registrar_venta(usuario, cliente, tipo_pago, fecha_servicio, srv_mascotas, srv_servicios, prod_ids, prod_cantidades):
     items_servicio = []
     for mascota_id, servicio_id in zip(srv_mascotas, srv_servicios):
         mascota = TmMMascota.objects.filter(pk=mascota_id).first()
@@ -88,7 +92,9 @@ def _registrar_venta(cliente, tipo_pago, fecha_servicio, srv_mascotas, srv_servi
     reserva = None
     if items_servicio:
         fecha_reserva = _parse_fecha_local(fecha_servicio) or timezone.now()
-        reserva = TmTReserva.objects.create(id_cliente=cliente, fecha_hora_reserva=fecha_reserva, estado='Completado')
+        reserva = TmTReserva.objects.create(
+            id_cliente=cliente, id_usuario=usuario, fecha_hora_reserva=fecha_reserva, estado='Completado'
+        )
         for mascota, servicio in items_servicio:
             precio = _precio_servicio(servicio)
             subtotal += precio
@@ -124,6 +130,7 @@ def _registrar_venta(cliente, tipo_pago, fecha_servicio, srv_mascotas, srv_servi
 
     factura = TmTFactura.objects.create(
         id_cliente=cliente,
+        id_usuario=usuario,
         fecha_emision=timezone.now(),
         subtotal=subtotal,
         iva=iva,
@@ -151,6 +158,29 @@ def _iniciales(nombre):
     if len(partes) == 1:
         return partes[0][:2].upper()
     return (partes[0][0] + partes[1][0]).upper()
+
+
+def iniciar_sesion(request):
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            nombre_usuario = form.cleaned_data['nombre_usuario']
+            password = form.cleaned_data['password']
+            usuario = TmMUsuario.objects.filter(nombre_usuario=nombre_usuario, activo=True).first()
+            if usuario and usuario.contrasena_hash and check_password(password, usuario.contrasena_hash):
+                request.session['usuario_id'] = usuario.id_usuario
+                return redirect('tienda:dashboard')
+            messages.error(request, 'Usuario o contraseña incorrectos.')
+    else:
+        form = LoginForm()
+
+    return render(request, 'tienda/login.html', {'form': form})
+
+
+def cerrar_sesion(request):
+    if request.method == 'POST':
+        request.session.flush()
+    return redirect('tienda:login')
 
 
 def dashboard(request):
@@ -463,6 +493,130 @@ def proveedor_eliminar(request, pk):
     return redirect('tienda:proveedores')
 
 
+def usuarios(request):
+    if request.method == 'POST':
+        form = UsuarioForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Usuario guardado correctamente.')
+            return redirect('tienda:usuarios')
+    else:
+        form = UsuarioForm()
+
+    qs = TmMUsuario.objects.select_related('id_cargo').order_by('nombre_usuario')
+    return render(request, 'tienda/usuarios.html', {
+        'form': form,
+        'cargo_form': CargoForm(),
+        'usuarios': qs,
+        'cargos': TmPCargo.objects.order_by('nombre_cargo'),
+        'active_view': 'usuarios',
+    })
+
+
+def usuario_editar(request, pk):
+    usuario = get_object_or_404(TmMUsuario, pk=pk)
+    if request.method == 'POST':
+        form = UsuarioForm(request.POST, instance=usuario)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Usuario actualizado correctamente.')
+            return redirect('tienda:usuarios')
+    else:
+        form = UsuarioForm(instance=usuario)
+
+    qs = TmMUsuario.objects.select_related('id_cargo').order_by('nombre_usuario')
+    return render(request, 'tienda/usuarios.html', {
+        'form': form,
+        'cargo_form': CargoForm(),
+        'usuarios': qs,
+        'cargos': TmPCargo.objects.order_by('nombre_cargo'),
+        'editing': usuario,
+        'active_view': 'usuarios',
+    })
+
+
+def usuario_eliminar(request, pk):
+    usuario = get_object_or_404(TmMUsuario, pk=pk)
+    if request.method == 'POST':
+        try:
+            usuario.delete()
+            messages.success(request, 'Usuario eliminado.')
+        except DatabaseError:
+            messages.error(request, 'No se puede eliminar: el usuario tiene movimientos asociados.')
+    return redirect('tienda:usuarios')
+
+
+def cargo_crear(request):
+    if request.method == 'POST':
+        form = CargoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Cargo creado correctamente.')
+        else:
+            messages.error(request, 'No se pudo crear el cargo: revisa los datos.')
+    return redirect('tienda:usuarios')
+
+
+def cargo_eliminar(request, pk):
+    cargo = get_object_or_404(TmPCargo, pk=pk)
+    if request.method == 'POST':
+        try:
+            cargo.delete()
+            messages.success(request, 'Cargo eliminado.')
+        except DatabaseError:
+            messages.error(request, 'No se puede eliminar: hay usuarios con este cargo.')
+    return redirect('tienda:usuarios')
+
+
+def horarios(request):
+    if request.method == 'POST':
+        form = HorarioForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Horario guardado correctamente.')
+            return redirect('tienda:horarios')
+    else:
+        form = HorarioForm()
+
+    qs = TmMHorario.objects.select_related('id_usuario').order_by('-fecha', 'hora_inicio')
+    return render(request, 'tienda/horarios.html', {
+        'form': form,
+        'horarios': qs,
+        'active_view': 'horarios',
+    })
+
+
+def horario_editar(request, pk):
+    horario = get_object_or_404(TmMHorario, pk=pk)
+    if request.method == 'POST':
+        form = HorarioForm(request.POST, instance=horario)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Horario actualizado correctamente.')
+            return redirect('tienda:horarios')
+    else:
+        form = HorarioForm(instance=horario)
+
+    qs = TmMHorario.objects.select_related('id_usuario').order_by('-fecha', 'hora_inicio')
+    return render(request, 'tienda/horarios.html', {
+        'form': form,
+        'horarios': qs,
+        'editing': horario,
+        'active_view': 'horarios',
+    })
+
+
+def horario_eliminar(request, pk):
+    horario = get_object_or_404(TmMHorario, pk=pk)
+    if request.method == 'POST':
+        try:
+            horario.delete()
+            messages.success(request, 'Horario eliminado.')
+        except DatabaseError:
+            messages.error(request, 'No se pudo eliminar el horario.')
+    return redirect('tienda:horarios')
+
+
 def compras(request):
     if request.method == 'POST':
         proveedor = TmMProveedor.objects.filter(pk=request.POST.get('proveedor')).first()
@@ -480,7 +634,8 @@ def compras(request):
         try:
             with transaction.atomic():
                 compra = TmTCompra.objects.create(
-                    id_proveedor=proveedor, fecha_hora_compra=timezone.now(), total_compra=0
+                    id_proveedor=proveedor, id_usuario=request.usuario, fecha_hora_compra=timezone.now(),
+                    total_compra=0,
                 )
                 total = 0
                 for producto_id, cantidad_raw, costo_raw in zip(prod_ids, prod_cantidades, prod_costos):
@@ -569,7 +724,8 @@ def venta(request):
         try:
             with transaction.atomic():
                 factura = _registrar_venta(
-                    cliente, tipo_pago, fecha_servicio, srv_mascotas, srv_servicios, prod_ids, prod_cantidades
+                    request.usuario, cliente, tipo_pago, fecha_servicio, srv_mascotas, srv_servicios,
+                    prod_ids, prod_cantidades,
                 )
         except ValueError as exc:
             messages.error(request, str(exc))
