@@ -138,7 +138,7 @@
         <td style="color:#5a6f6b;">{{ f.fecha_emision|date:"d M, H:i"|default:"—" }}</td>
         <td style="font-weight:700;color:var(--ink);">{{ f.id_cliente.nombre_completo|default:"—" }}</td>
         <td style="font-size:.82rem;color:#5a6f6b;">
-          {% for r in f.tmtreserva_set.all %}{% for d in r.tmtdetallereserva_set.all %}<div><i class="bi bi-scissors" style="margin-right:5px;color:var(--brand-l);"></i>{{ d.id_servicio.nombre_servicio|default:"Servicio" }} · {{ d.id_mascota.nombre|default:"—" }}</div>{% endfor %}{% endfor %}
+          {% for r in f.tmtreserva_set.all %}{% for d in r.tmtdetallereserva_set.all %}<div><i class="bi bi-scissors" style="margin-right:5px;color:var(--brand-l);"></i>{{ d.id_servicio.nombre_servicio|default:"Servicio" }} · {{ d.id_mascota.nombre|default:"—" }} <span style="color:#9aaba7;">— {{ r.fecha_hora_reserva|date:"d M, H:i"|default:"—" }}</span></div>{% endfor %}{% endfor %}
           {% for v in f.tmtventa_set.all %}{% for d in v.tmtdetalleventa_set.all %}<div><i class="bi bi-box-seam" style="margin-right:5px;color:var(--brand-l);"></i>{{ d.id_producto.nombre_producto|default:"Producto" }} × {{ d.cantidad }}</div>{% endfor %}{% endfor %}
         </td>
         <td style="color:#5a6f6b;">{{ f.id_tipo_pago.nombre|default:"—" }}</td>
@@ -174,7 +174,12 @@ document.addEventListener('DOMContentLoaded', function () {
   var fechaInput = document.getElementById('cart_fecha_servicio');
 
   var ahora = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
-  if (fechaInput) { fechaInput.value = ahora.toISOString().slice(0, 16); }
+  if (fechaInput) {
+    var maxFecha = new Date(ahora.getTime() + 7 * 24 * 60 * 60 * 1000);
+    fechaInput.value = ahora.toISOString().slice(0, 16);
+    fechaInput.min = ahora.toISOString().slice(0, 16);
+    fechaInput.max = maxFecha.toISOString().slice(0, 16);
+  }
 
   function actualizarClienteBloqueado() {
     if (!clienteSel) return;

@@ -27,6 +27,7 @@ FACTURA_BADGE_MAP = {
 PERIODOS = {'dia': 'Hoy', 'semana': 'Esta semana', 'mes': 'Este mes'}
 
 IVA_PORCENTAJE = 15
+DIAS_MAX_RESERVA = 7
 
 
 def _rango_periodo(periodo, hoy):
@@ -100,7 +101,16 @@ def _registrar_venta(usuario, cliente, tipo_pago, fecha_servicio, srv_mascotas, 
 
     reserva = None
     if items_servicio:
-        fecha_reserva = _parse_fecha_local(fecha_servicio) or timezone.now()
+        fecha_reserva = _parse_fecha_local(fecha_servicio)
+        if fecha_reserva is None:
+            fecha_reserva = timezone.now()
+        else:
+            ahora = timezone.now()
+            limite = ahora + datetime.timedelta(days=DIAS_MAX_RESERVA)
+            if fecha_reserva < ahora - datetime.timedelta(minutes=5):
+                raise ValueError('La fecha del servicio no puede ser anterior a hoy.')
+            if fecha_reserva > limite:
+                raise ValueError(f'La fecha del servicio no puede superar los próximos {DIAS_MAX_RESERVA} días.')
         reserva = TmTReserva.objects.create(
             id_cliente=cliente, id_usuario=usuario, fecha_hora_reserva=fecha_reserva, estado='Completado'
         )
