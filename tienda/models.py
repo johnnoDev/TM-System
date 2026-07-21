@@ -25,6 +25,21 @@ class TmMCliente(models.Model):
         return self.nombre_razon_social or f'Cliente #{self.id_cliente}'
 
 
+class TmMHorario(models.Model):
+    id_horario = models.AutoField(primary_key=True)
+    id_usuario = models.ForeignKey('TmMUsuario', models.DO_NOTHING, db_column='id_usuario', blank=True, null=True)
+    fecha = models.DateField(blank=True, null=True)
+    hora_inicio = models.TimeField(blank=True, null=True)
+    hora_fin = models.TimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'TM_M_Horario'
+
+    def __str__(self):
+        return f'Horario #{self.id_horario}'
+
+
 class TmMMascota(models.Model):
     id_mascota = models.AutoField(primary_key=True)
     id_cliente = models.ForeignKey(TmMCliente, models.DO_NOTHING, db_column='id_cliente', blank=True, null=True)
@@ -306,21 +321,6 @@ class TmTFactura(models.Model):
 
     def __str__(self):
         return self.numero_factura or f'Factura #{self.id_factura}'
-
-
-class TmTHorario(models.Model):
-    id_horario = models.AutoField(primary_key=True)
-    id_usuario = models.ForeignKey(TmMUsuario, models.DO_NOTHING, db_column='id_usuario', blank=True, null=True)
-    fecha = models.DateField(blank=True, null=True)
-    hora_inicio = models.TimeField(blank=True, null=True)
-    hora_fin = models.TimeField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'TM_T_Horario'
-
-    def __str__(self):
-        return f'Horario #{self.id_horario}'
 
 
 class TmTReserva(models.Model):

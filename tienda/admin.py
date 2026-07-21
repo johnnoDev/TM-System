@@ -3,6 +3,7 @@ from django.contrib import admin
 from . import models
 
 admin.site.register(models.TmMCliente)
+admin.site.register(models.TmMHorario)
 admin.site.register(models.TmMMascota)
 admin.site.register(models.TmMProducto)
 admin.site.register(models.TmMProveedor)
@@ -22,6 +23,5 @@ admin.site.register(models.TmTDetallecompra)
 admin.site.register(models.TmTDetallereserva)
 admin.site.register(models.TmTDetalleventa)
 admin.site.register(models.TmTFactura)
-admin.site.register(models.TmTHorario)
 admin.site.register(models.TmTReserva)
 admin.site.register(models.TmTVenta)
