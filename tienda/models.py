@@ -20,7 +20,7 @@ class TmMCliente(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_M_Cliente'
+        db_table = 'SIGM_M_Cliente'
 
     @property
     def nombre_completo(self):
@@ -39,7 +39,7 @@ class TmMHorario(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_M_Horario'
+        db_table = 'SIGM_M_Horario'
 
     def __str__(self):
         return f'Horario #{self.id_horario}'
@@ -56,7 +56,7 @@ class TmMMascota(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_M_Mascota'
+        db_table = 'SIGM_M_Mascota'
 
     def __str__(self):
         return self.nombre or f'Mascota #{self.id_mascota}'
@@ -74,7 +74,7 @@ class TmMProducto(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_M_Producto'
+        db_table = 'SIGM_M_Producto'
 
     def __str__(self):
         return self.nombre_producto or f'Producto #{self.id_producto}'
@@ -90,7 +90,7 @@ class TmMProveedor(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_M_Proveedor'
+        db_table = 'SIGM_M_Proveedor'
 
     def __str__(self):
         return self.razon_social or f'Proveedor #{self.id_proveedor}'
@@ -105,7 +105,7 @@ class TmMServicio(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_M_Servicio'
+        db_table = 'SIGM_M_Servicio'
 
     def __str__(self):
         if self.precio_base is not None:
@@ -122,7 +122,7 @@ class TmMUsuario(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_M_Usuario'
+        db_table = 'SIGM_M_Usuario'
 
     def __str__(self):
         return self.nombre_usuario or f'Usuario #{self.id_usuario}'
@@ -135,7 +135,7 @@ class TmPCargo(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_P_Cargo'
+        db_table = 'SIGM_P_Cargo'
 
     def __str__(self):
         return self.nombre_cargo or f'Cargo #{self.id_cargo}'
@@ -148,7 +148,7 @@ class TmPCategoria(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_P_Categoria'
+        db_table = 'SIGM_P_Categoria'
 
     def __str__(self):
         return self.nombre_categoria or f'Categoría #{self.id_categoria}'
@@ -161,7 +161,7 @@ class TmPCiudad(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_P_Ciudad'
+        db_table = 'SIGM_P_Ciudad'
 
     def __str__(self):
         return self.nombre_ciudad or f'Ciudad #{self.id_ciudad}'
@@ -173,7 +173,7 @@ class TmPEspecie(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_P_Especie'
+        db_table = 'SIGM_P_Especie'
 
     def __str__(self):
         return self.nombre_especie or f'Especie #{self.id_especie}'
@@ -185,7 +185,7 @@ class TmPProvincia(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_P_Provincia'
+        db_table = 'SIGM_P_Provincia'
 
     def __str__(self):
         return self.nombre_provincia or f'Provincia #{self.id_provincia}'
@@ -198,7 +198,7 @@ class TmPRaza(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_P_Raza'
+        db_table = 'SIGM_P_Raza'
 
     def __str__(self):
         if self.id_especie_id:
@@ -213,7 +213,7 @@ class TmPTarifaservicio(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_P_TarifaServicio'
+        db_table = 'SIGM_P_TarifaServicio'
 
     def __str__(self):
         return f'{self.talla} (${self.precio})' if self.talla else f'Tarifa #{self.id_tarifa_servicio}'
@@ -225,7 +225,7 @@ class TmPTipocliente(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_P_TipoCliente'
+        db_table = 'SIGM_P_TipoCliente'
 
     def __str__(self):
         return self.nombre or f'Tipo de cliente #{self.id_tipo_cliente}'
@@ -239,7 +239,7 @@ class TmPTipopago(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_P_TipoPago'
+        db_table = 'SIGM_P_TipoPago'
 
     def __str__(self):
         return self.nombre or f'Tipo de pago #{self.id_tipo_pago}'
@@ -254,7 +254,7 @@ class TmTCompra(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_T_Compra'
+        db_table = 'SIGM_T_Compra'
 
     def __str__(self):
         return f'Compra #{self.id_compra}'
@@ -269,7 +269,7 @@ class TmTDetallecompra(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_T_DetalleCompra'
+        db_table = 'SIGM_T_DetalleCompra'
 
     def __str__(self):
         return f'Detalle compra #{self.id_detalle_compra}'
@@ -287,7 +287,7 @@ class TmTDetallereserva(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_T_DetalleReserva'
+        db_table = 'SIGM_T_DetalleReserva'
 
     def __str__(self):
         return f'Detalle reserva #{self.id_detalle_reserva}'
@@ -302,7 +302,7 @@ class TmTDetalleventa(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_T_DetalleVenta'
+        db_table = 'SIGM_T_DetalleVenta'
 
     def __str__(self):
         return f'Detalle venta #{self.id_detalle_venta}'
@@ -322,7 +322,7 @@ class TmTFactura(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_T_Factura'
+        db_table = 'SIGM_T_Factura'
 
     def __str__(self):
         return self.numero_factura or f'Factura #{self.id_factura}'
@@ -338,7 +338,7 @@ class TmTReserva(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_T_Reserva'
+        db_table = 'SIGM_T_Reserva'
 
     def __str__(self):
         return f'Reserva #{self.id_reserva}'
@@ -352,7 +352,7 @@ class TmTVenta(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'TM_T_Venta'
+        db_table = 'SIGM_T_Venta'
 
     def __str__(self):
         return f'Venta #{self.id_venta}'

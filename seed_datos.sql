@@ -1,10 +1,10 @@
--- Datos base para las tablas de parámetro/catálogo (TM_P_*) que alimentan
+-- Datos base para las tablas de parámetro/catálogo (SIGM_P_*) que alimentan
 -- los combos de la interfaz (Ciudad, Raza, Tipo de servicio).
 -- Ejecutar una sola vez sobre la base configurada en .env (DB_NAME),
 -- por ejemplo desde SQL Server Management Studio o Azure Data Studio.
 
 -- Provincias (las 24 provincias del Ecuador)
-INSERT INTO TM_P_Provincia (id_provincia, nombre_provincia) VALUES
+INSERT INTO SIGM_P_Provincia (id_provincia, nombre_provincia) VALUES
 (1, 'Azuay'),
 (2, 'Bolívar'),
 (3, 'Cañar'),
@@ -31,7 +31,7 @@ INSERT INTO TM_P_Provincia (id_provincia, nombre_provincia) VALUES
 (24, 'Zamora Chinchipe');
 
 -- Ciudades (cantones) del Ecuador, relacionados a su provincia
-INSERT INTO TM_P_Ciudad (id_ciudad, nombre_ciudad, id_provincia) VALUES
+INSERT INTO SIGM_P_Ciudad (id_ciudad, nombre_ciudad, id_provincia) VALUES
 -- Azuay (1)
 (1, 'Cuenca', 1),
 (2, 'Camilo Ponce Enríquez', 1),
@@ -278,12 +278,12 @@ INSERT INTO TM_P_Ciudad (id_ciudad, nombre_ciudad, id_provincia) VALUES
 (220, 'Yantzaza', 24);
 
 -- Especies
-INSERT INTO TM_P_Especie (id_especie, nombre_especie) VALUES
+INSERT INTO SIGM_P_Especie (id_especie, nombre_especie) VALUES
 (1, 'Perro'),
 (2, 'Gato');
 
 -- Razas
-INSERT INTO TM_P_Raza (id_raza, id_especie, nombre_raza) VALUES
+INSERT INTO SIGM_P_Raza (id_raza, id_especie, nombre_raza) VALUES
 (1, 1, 'Labrador'),
 (2, 1, 'Poodle'),
 (3, 1, 'Schnauzer'),
@@ -294,13 +294,13 @@ INSERT INTO TM_P_Raza (id_raza, id_especie, nombre_raza) VALUES
 (8, 2, 'Mestizo');
 
 -- Tarifas de servicio (según talla de la mascota)
-INSERT INTO TM_P_TarifaServicio (id_tarifa_servicio, talla, precio) VALUES
+INSERT INTO SIGM_P_TarifaServicio (id_tarifa_servicio, talla, precio) VALUES
 (1, 'Pequeña', 12.00),
 (2, 'Mediana', 18.00),
 (3, 'Grande', 25.00);
 
 -- Servicios (tabla maestra que alimenta el combo "Tipo de servicio" en Citas)
-INSERT INTO TM_M_Servicio (id_servicio, id_tarifa_servicio, nombre_servicio, duracion_estimada_min, precio_base) VALUES
+INSERT INTO SIGM_M_Servicio (id_servicio, id_tarifa_servicio, nombre_servicio, duracion_estimada_min, precio_base) VALUES
 (1, 1, 'Baño y corte - talla pequeña', 45, 12.00),
 (2, 2, 'Baño y corte - talla mediana', 60, 18.00),
 (3, 3, 'Baño y corte - talla grande', 90, 25.00),

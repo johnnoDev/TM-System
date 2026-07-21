@@ -13,24 +13,24 @@ En el equipo donde se va a instalar debe haber:
 
 ## 1. Restaurar la base de datos (.bak)
 
-1. Copia el archivo `.bak` que se te entregó a una carpeta accesible por el servicio de SQL Server (por ejemplo `C:\Backups\BD_TiendaMascotas.bak`).
+1. Copia el archivo `.bak` que se te entregó a una carpeta accesible por el servicio de SQL Server (por ejemplo `C:\Backups\SIGM.bak`).
 2. Abre SQL Server Management Studio y conéctate a tu instancia local.
 3. Click derecho en **Databases → Restore Database…**
 4. En **Source**, elige **Device** y selecciona el archivo `.bak`.
-5. En **Destination**, el nombre de la base debe quedar como `BD_TiendaMascotas` (o el nombre que prefieras, pero después debe coincidir con `DB_NAME` en el paso 4).
+5. En **Destination**, el nombre de la base debe quedar como `SIGM` (o el nombre que prefieras, pero después debe coincidir con `DB_NAME` en el paso 4).
 6. Antes de confirmar, revisa la pestaña **Files**: si las rutas de los archivos `.mdf`/`.ldf` no existen en el nuevo equipo, marca **Relocate all files to folder** y apunta a una carpeta de datos válida de tu instancia.
 7. Click en **OK** para restaurar.
 
 Alternativa por T-SQL (ajusta las rutas según tu instalación):
 
 ```sql
-RESTORE FILELISTONLY FROM DISK = 'C:\Backups\BD_TiendaMascotas.bak';
+RESTORE FILELISTONLY FROM DISK = 'C:\Backups\SIGM.bak';
 -- usa los nombres lógicos que te devuelva el comando anterior en el MOVE
 
-RESTORE DATABASE BD_TiendaMascotas
-FROM DISK = 'C:\Backups\BD_TiendaMascotas.bak'
-WITH MOVE 'BD_TiendaMascotas' TO 'C:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\DATA\BD_TiendaMascotas.mdf',
-     MOVE 'BD_TiendaMascotas_log' TO 'C:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\DATA\BD_TiendaMascotas_log.ldf',
+RESTORE DATABASE SIGM
+FROM DISK = 'C:\Backups\SIGM.bak'
+WITH MOVE 'SIGM' TO 'C:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\DATA\SIGM.mdf',
+     MOVE 'SIGM_log' TO 'C:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\DATA\SIGM_log.ldf',
      REPLACE;
 ```
 
@@ -40,7 +40,7 @@ La app se conecta por autenticación de SQL Server (usuario y contraseña, no au
 
 - La instancia tenga habilitado **SQL Server and Windows Authentication mode** (Server properties → Security).
 - El protocolo **TCP/IP** esté habilitado en SQL Server Configuration Manager, y el servicio se haya reiniciado después de habilitarlo.
-- Tengas un login válido con permisos sobre `BD_TiendaMascotas` (puede ser `sa`, o un login dedicado con rol `db_owner` sobre esa base — más recomendable que usar `sa`).
+- Tengas un login válido con permisos sobre `SIGM` (puede ser `sa`, o un login dedicado con rol `db_owner` sobre esa base — más recomendable que usar `sa`).
 
 ## 3. Crear el entorno virtual e instalar dependencias
 
@@ -59,7 +59,7 @@ Esto instala Django, `mssql-django`, `pyodbc` y `python-dotenv`, entre otros.
 Crea un archivo `.env` en la raíz del proyecto (mismo nivel que `manage.py`) con estas variables:
 
 ```
-DB_NAME=BD_TiendaMascotas
+DB_NAME=SIGM
 DB_USER=<tu_usuario_sql>
 DB_PASSWORD=<tu_contraseña>
 DB_HOST=localhost
@@ -88,7 +88,7 @@ Abre el navegador en `http://127.0.0.1:8000/`. Debe redirigirte a la pantalla de
 
 ## 7. Iniciar sesión
 
-Usa un usuario existente de la tabla `TM_M_Usuario` (restaurada junto con el `.bak`). Si no tienes credenciales, se pueden crear/actualizar directamente en SQL Server o desde la pantalla de Usuarios una vez que alguien ya haya iniciado sesión.
+Usa un usuario existente de la tabla `SIGM_M_Usuario` (restaurada junto con el `.bak`). Si no tienes credenciales, se pueden crear/actualizar directamente en SQL Server o desde la pantalla de Usuarios una vez que alguien ya haya iniciado sesión.
 
 ## Solución de problemas comunes
 

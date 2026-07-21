@@ -42,7 +42,7 @@
           <option value="{{ tp.id_tipo_pago }}">{{ tp.nombre }}</option>
           {% endfor %}
         </select>
-        {% if not tipos_pago.exists %}<div style="font-size:.78rem;color:#c07a26;margin-top:4px;">No hay formas de pago cargadas en <code>TM_P_TipoPago</code>.</div>{% endif %}
+        {% if not tipos_pago.exists %}<div style="font-size:.78rem;color:#c07a26;margin-top:4px;">No hay formas de pago cargadas en <code>SIGM_P_TipoPago</code>.</div>{% endif %}
       </div>
     </div>
 
@@ -53,7 +53,7 @@
           {% if not mascotas.exists %}
             <div style="font-size:.85rem;color:#9aaba7;">Registra al menos una mascota.</div>
           {% elif not servicios %}
-            <div style="font-size:.85rem;color:#9aaba7;">Aún no hay servicios cargados en <code>TM_M_Servicio</code>.</div>
+            <div style="font-size:.85rem;color:#9aaba7;">Aún no hay servicios cargados en <code>SIGM_M_Servicio</code>.</div>
           {% else %}
           <div class="row g-2">
             <div class="col-12">
