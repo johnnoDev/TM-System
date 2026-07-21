@@ -7,10 +7,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from .forms import CategoriaForm, ClienteForm, MascotaForm, ProductoForm
+from .forms import CategoriaForm, ClienteForm, MascotaForm, ProductoForm, ProveedorForm
 from .models import (
-    TmMCliente, TmMMascota, TmMProducto, TmMServicio, TmPCategoria, TmPTipopago, TmTDetallereserva,
-    TmTDetalleventa, TmTFactura, TmTReserva, TmTVenta,
+    TmMCliente, TmMMascota, TmMProducto, TmMProveedor, TmMServicio, TmPCategoria, TmPTipopago, TmTCompra,
+    TmTDetallecompra, TmTDetallereserva, TmTDetalleventa, TmTFactura, TmTReserva, TmTVenta,
 )
 
 PALETTE = ['#3aa89a', '#5b8fd8', '#d98a5b', '#9b6cc9', '#c9a85b', '#e08a5b']
@@ -372,6 +372,147 @@ def categoria_eliminar(request, pk):
         except DatabaseError:
             messages.error(request, 'No se puede eliminar: hay productos asociados a esta categoría.')
     return redirect('tienda:productos')
+
+
+def proveedores(request):
+    if request.method == 'POST':
+        form = ProveedorForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Proveedor guardado correctamente.')
+            return redirect('tienda:proveedores')
+    else:
+        form = ProveedorForm()
+
+    qs = TmMProveedor.objects.select_related('id_ciudad').order_by('razon_social')
+    q = request.GET.get('q', '').strip()
+    if q:
+        qs = qs.filter(razon_social__icontains=q)
+    qs = list(qs)
+    for i, p in enumerate(qs):
+        p.iniciales = _iniciales(p.razon_social)
+        p.color = PALETTE[i % len(PALETTE)]
+
+    return render(request, 'tienda/proveedores.html', {
+        'form': form,
+        'proveedores': qs,
+        'q': q,
+        'active_view': 'proveedores',
+    })
+
+
+def proveedor_editar(request, pk):
+    proveedor = get_object_or_404(TmMProveedor, pk=pk)
+    if request.method == 'POST':
+        form = ProveedorForm(request.POST, instance=proveedor)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Proveedor actualizado correctamente.')
+            return redirect('tienda:proveedores')
+    else:
+        form = ProveedorForm(instance=proveedor)
+
+    qs = TmMProveedor.objects.select_related('id_ciudad').order_by('razon_social')
+    return render(request, 'tienda/proveedores.html', {
+        'form': form,
+        'proveedores': qs,
+        'editing': proveedor,
+        'active_view': 'proveedores',
+    })
+
+
+def proveedor_eliminar(request, pk):
+    proveedor = get_object_or_404(TmMProveedor, pk=pk)
+    if request.method == 'POST':
+        try:
+            proveedor.delete()
+            messages.success(request, 'Proveedor eliminado.')
+        except DatabaseError:
+            messages.error(request, 'No se puede eliminar: el proveedor tiene compras asociadas.')
+    return redirect('tienda:proveedores')
+
+
+def compras(request):
+    if request.method == 'POST':
+        proveedor = TmMProveedor.objects.filter(pk=request.POST.get('proveedor')).first()
+        prod_ids = request.POST.getlist('prod_id')
+        prod_cantidades = request.POST.getlist('prod_cantidad')
+        prod_costos = request.POST.getlist('prod_costo')
+
+        if proveedor is None:
+            messages.error(request, 'Selecciona un proveedor.')
+            return redirect('tienda:compras')
+        if not prod_ids:
+            messages.error(request, 'Agrega al menos un producto al carrito.')
+            return redirect('tienda:compras')
+
+        try:
+            with transaction.atomic():
+                compra = TmTCompra.objects.create(
+                    id_proveedor=proveedor, fecha_hora_compra=timezone.now(), total_compra=0
+                )
+                total = 0
+                for producto_id, cantidad_raw, costo_raw in zip(prod_ids, prod_cantidades, prod_costos):
+                    producto = TmMProducto.objects.filter(pk=producto_id).first()
+                    if producto is None:
+                        raise ValueError('Uno de los productos del carrito ya no existe.')
+                    try:
+                        cantidad = int(cantidad_raw)
+                    except (TypeError, ValueError):
+                        cantidad = 0
+                    if cantidad <= 0:
+                        raise ValueError(f'Cantidad inválida para {producto.nombre_producto}.')
+                    try:
+                        costo = float(costo_raw)
+                    except (TypeError, ValueError):
+                        costo = 0
+                    if costo < 0:
+                        raise ValueError(f'Costo inválido para {producto.nombre_producto}.')
+
+                    TmTDetallecompra.objects.create(
+                        id_compra=compra, id_producto=producto, cantidad=cantidad, precio_costo=costo,
+                    )
+                    TmMProducto.objects.filter(pk=producto.pk).update(stock_actual=F('stock_actual') + cantidad)
+                    total += costo * cantidad
+
+                compra.total_compra = total
+                compra.save(update_fields=['total_compra'])
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect('tienda:compras')
+
+        messages.success(request, f'Compra registrada. Total ${compra.total_compra}.')
+        return redirect('tienda:compras')
+
+    productos_qs = TmMProducto.objects.order_by('nombre_producto')
+    historial = (TmTCompra.objects
+                 .select_related('id_proveedor')
+                 .prefetch_related('tmtdetallecompra_set__id_producto')
+                 .order_by('-fecha_hora_compra')[:30])
+
+    return render(request, 'tienda/compras.html', {
+        'proveedores': TmMProveedor.objects.order_by('razon_social'),
+        'productos': productos_qs,
+        'historial': historial,
+        'active_view': 'compras',
+    })
+
+
+def compra_eliminar(request, pk):
+    compra = get_object_or_404(TmTCompra, pk=pk)
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                for detalle in TmTDetallecompra.objects.filter(id_compra=compra):
+                    TmMProducto.objects.filter(pk=detalle.id_producto_id).update(
+                        stock_actual=F('stock_actual') - (detalle.cantidad or 0)
+                    )
+                TmTDetallecompra.objects.filter(id_compra=compra).delete()
+                compra.delete()
+            messages.success(request, 'Compra eliminada y stock revertido.')
+        except DatabaseError:
+            messages.error(request, 'No se pudo eliminar la compra.')
+    return redirect('tienda:compras')
 
 
 def venta(request):

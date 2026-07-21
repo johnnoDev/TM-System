@@ -1,0 +1,214 @@
+{% extends 'tienda/base.html' %}
+
+{% block title %}Compras · PetGroom{% endblock %}
+{% block crumb %}Inicio / Compras{% endblock %}
+{% block heading %}Nueva Compra{% endblock %}
+
+{% block topbar_extra %}
+<a href="{% url 'tienda:proveedores' %}" class="btn btn-light" style="border-radius:12px;padding:9px 18px;font-weight:700;border:1px solid #e6efec;"><i class="bi bi-truck" style="margin-right:6px;"></i>Proveedores</a>
+{% endblock %}
+
+{% block content %}
+<div class="gr-card" style="padding:24px;box-shadow:0 12px 34px -22px rgba(38,74,69,.4);margin-bottom:26px;">
+  <div class="gr-h" style="font-size:1.15rem;margin-bottom:18px;">Registrar compra a proveedor</div>
+
+  {% if not proveedores.exists %}
+  <div class="alert alert-warning" style="border-radius:12px;">Registra al menos un proveedor antes de iniciar una compra.</div>
+  {% endif %}
+
+  <form method="post" id="formCompra">
+    {% csrf_token %}
+    <div id="cart-inputs"></div>
+
+    <div class="row g-3" style="margin-bottom:18px;">
+      <div class="col-md-6">
+        <label class="form-label" for="cart_proveedor">Proveedor</label>
+        <select id="cart_proveedor" name="proveedor" class="form-select" required>
+          <option value="">---------</option>
+          {% for p in proveedores %}
+          <option value="{{ p.id_proveedor }}">{{ p.razon_social|default:"—" }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    {% if not productos.exists %}
+      <div style="font-size:.85rem;color:#9aaba7;margin-bottom:18px;">Registra al menos un producto en el catálogo antes de comprar.</div>
+    {% else %}
+    <div style="border:1px dashed #d9e5e1;border-radius:14px;padding:16px;margin-bottom:18px;">
+      <div style="font-weight:800;color:var(--ink);margin-bottom:10px;"><i class="bi bi-box-seam" style="margin-right:7px;color:var(--brand);"></i>Agregar producto</div>
+      <div class="row g-2">
+        <div class="col-md-5">
+          <select id="cart_producto" class="form-select">
+            <option value="">Selecciona un producto</option>
+            {% for p in productos %}
+            <option value="{{ p.id_producto }}" data-nombre="{{ p.nombre_producto }}" data-costo="{{ p.precio_costo_referencial|default:'0' }}" data-stock="{{ p.stock_actual|default:'0' }}">{{ p.nombre_producto|default:"—" }} (stock {{ p.stock_actual|default:"0" }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <input type="number" id="cart_costo" class="form-control" placeholder="Costo unitario" step="0.01" min="0">
+        </div>
+        <div class="col-md-2">
+          <input type="number" id="cart_cantidad" class="form-control" value="1" min="1">
+        </div>
+        <div class="col-md-2">
+          <button type="button" id="btnAgregarProducto" class="btn btn-brand" style="border-radius:12px;width:100%;"><i class="bi bi-plus-lg"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive" style="margin-bottom:14px;"><table class="table align-middle mb-0">
+      <thead><tr><th>Producto</th><th>Cant.</th><th>Costo unit.</th><th>Subtotal</th><th></th></tr></thead>
+      <tbody id="cart-rows">
+        <tr id="cart-empty-row"><td colspan="5" style="text-align:center;color:#9aaba7;padding:20px;">El carrito está vacío. Agrega un producto.</td></tr>
+      </tbody>
+    </table></div>
+
+    <div style="display:flex;justify-content:flex-end;margin-bottom:18px;">
+      <div style="min-width:220px;">
+        <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1.5px solid #eef3f1;"><span class="gr-h">Total</span><span class="gr-h" style="color:var(--brand-d);font-size:1.25rem;" id="cart-total">$0.00</span></div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;">
+      <button type="submit" class="btn btn-brand" style="border-radius:12px;padding:11px 26px;font-weight:800;"><i class="bi bi-bag-plus" style="margin-right:7px;"></i>Registrar compra</button>
+    </div>
+    {% endif %}
+  </form>
+</div>
+
+<div class="gr-card" style="padding:24px;box-shadow:0 12px 34px -22px rgba(38,74,69,.4);">
+  <div class="gr-h" style="font-size:1.15rem;margin-bottom:18px;">Historial de compras</div>
+  <div class="table-responsive"><table class="table align-middle mb-0">
+    <thead><tr><th>ID</th><th>Fecha</th><th>Proveedor</th><th>Detalle</th><th>Total</th><th class="text-end">Acciones</th></tr></thead>
+    <tbody>
+      {% for c in historial %}
+      <tr>
+        <td style="color:#a9b8b5;font-weight:700;">#{{ c.id_compra }}</td>
+        <td style="color:#5a6f6b;">{{ c.fecha_hora_compra|date:"d M, H:i"|default:"—" }}</td>
+        <td style="font-weight:700;color:var(--ink);">{{ c.id_proveedor.razon_social|default:"—" }}</td>
+        <td style="font-size:.82rem;color:#5a6f6b;">
+          {% for d in c.tmtdetallecompra_set.all %}<div><i class="bi bi-box-seam" style="margin-right:5px;color:var(--brand-l);"></i>{{ d.id_producto.nombre_producto|default:"Producto" }} × {{ d.cantidad }} (${{ d.precio_costo }})</div>{% endfor %}
+        </td>
+        <td style="font-weight:800;color:var(--brand-d);">${{ c.total_compra|default:"0" }}</td>
+        <td class="text-end">
+          <form method="post" action="{% url 'tienda:compra_eliminar' c.id_compra %}" onsubmit="return confirm('¿Eliminar esta compra? Se revertirá el stock agregado.');">
+            {% csrf_token %}
+            <button type="submit" class="gr-iconbtn del" title="Eliminar"><i class="bi bi-trash3"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;color:#9aaba7;padding:26px;">Todavía no hay compras registradas.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var carrito = [];
+  var productoSel = document.getElementById('cart_producto');
+  var costoInput = document.getElementById('cart_costo');
+  var cantidadInput = document.getElementById('cart_cantidad');
+
+  if (productoSel && costoInput) {
+    productoSel.addEventListener('change', function () {
+      var opt = productoSel.options[productoSel.selectedIndex];
+      costoInput.value = opt && opt.value ? opt.getAttribute('data-costo') : '';
+    });
+  }
+
+  function money(n) { return '$' + (Math.round(n * 100) / 100).toFixed(2); }
+
+  function hiddenInput(name, value) {
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = value;
+    return input;
+  }
+
+  function renderCarrito() {
+    var tbody = document.getElementById('cart-rows');
+    tbody.innerHTML = '';
+    if (carrito.length === 0) {
+      var vacio = document.createElement('tr');
+      vacio.innerHTML = '<td colspan="5" style="text-align:center;color:#9aaba7;padding:20px;">El carrito está vacío. Agrega un producto.</td>';
+      tbody.appendChild(vacio);
+    }
+    var total = 0;
+    carrito.forEach(function (item, idx) {
+      var lineTotal = item.costo * item.cantidad;
+      total += lineTotal;
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td style="font-weight:700;color:var(--ink);">' + item.nombre + '</td><td>' + item.cantidad +
+        '</td><td>' + money(item.costo) + '</td><td style="font-weight:700;">' + money(lineTotal) + '</td><td class="text-end"></td>';
+      var btnQuitar = document.createElement('button');
+      btnQuitar.type = 'button';
+      btnQuitar.className = 'gr-iconbtn del';
+      btnQuitar.title = 'Quitar';
+      btnQuitar.innerHTML = '<i class="bi bi-x-lg"></i>';
+      btnQuitar.addEventListener('click', function () {
+        carrito.splice(idx, 1);
+        renderCarrito();
+      });
+      tr.lastElementChild.appendChild(btnQuitar);
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('cart-total').textContent = money(total);
+
+    var contenedor = document.getElementById('cart-inputs');
+    contenedor.innerHTML = '';
+    carrito.forEach(function (item) {
+      contenedor.appendChild(hiddenInput('prod_id', item.productoId));
+      contenedor.appendChild(hiddenInput('prod_cantidad', item.cantidad));
+      contenedor.appendChild(hiddenInput('prod_costo', item.costo));
+    });
+  }
+
+  var btnAgregarProducto = document.getElementById('btnAgregarProducto');
+  if (btnAgregarProducto) {
+    btnAgregarProducto.addEventListener('click', function () {
+      var pOpt = productoSel.options[productoSel.selectedIndex];
+      var cantidad = parseInt(cantidadInput.value, 10) || 0;
+      var costo = parseFloat(costoInput.value);
+      if (!pOpt || !pOpt.value || cantidad < 1) {
+        alert('Selecciona un producto y una cantidad válida.');
+        return;
+      }
+      if (isNaN(costo) || costo < 0) {
+        alert('Ingresa un costo unitario válido.');
+        return;
+      }
+      carrito.push({
+        productoId: pOpt.value,
+        nombre: pOpt.getAttribute('data-nombre'),
+        cantidad: cantidad,
+        costo: costo,
+      });
+      cantidadInput.value = 1;
+      costoInput.value = '';
+      productoSel.value = '';
+      renderCarrito();
+    });
+  }
+
+  var form = document.getElementById('formCompra');
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      if (carrito.length === 0) {
+        e.preventDefault();
+        alert('Agrega al menos un producto al carrito.');
+      }
+    });
+  }
+
+  renderCarrito();
+});
+</script>
+{% endblock %}

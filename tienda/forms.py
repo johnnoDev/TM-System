@@ -2,7 +2,7 @@ from django import forms
 from django.utils import timezone
 
 from .models import (
-    TmMCliente, TmMMascota, TmMProducto, TmPCategoria, TmPCiudad, TmPEspecie, TmPProvincia, TmPRaza,
+    TmMCliente, TmMMascota, TmMProducto, TmMProveedor, TmPCategoria, TmPCiudad, TmPEspecie, TmPProvincia, TmPRaza,
     TmPTipocliente,
 )
 
@@ -77,6 +77,53 @@ class ClienteForm(forms.ModelForm):
         self.fields['id_ciudad'].queryset = TmPCiudad.objects.order_by('nombre_ciudad')
         self.fields['id_ciudad'].required = False
         self.fields['nombre_razon_social'].required = True
+
+        if self.instance and self.instance.pk and self.instance.id_ciudad_id:
+            ciudad_actual = next((c for c in ciudades if c.id_ciudad == self.instance.id_ciudad_id), None)
+            if ciudad_actual and ciudad_actual.id_provincia_id:
+                self.fields['id_provincia'].initial = ciudad_actual.id_provincia_id
+
+        for field in self.fields.values():
+            css = field.widget.attrs.get('class', '')
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs['class'] = (css + ' form-select').strip()
+            else:
+                field.widget.attrs['class'] = (css + ' form-control').strip()
+
+
+class ProveedorForm(forms.ModelForm):
+    id_provincia = forms.ModelChoiceField(
+        queryset=TmPProvincia.objects.order_by('nombre_provincia'),
+        required=False,
+        label='Provincia',
+    )
+
+    class Meta:
+        model = TmMProveedor
+        fields = ['razon_social', 'ruc', 'id_ciudad', 'telefono', 'email']
+        labels = {
+            'razon_social': 'Razón social',
+            'ruc': 'RUC',
+            'id_ciudad': 'Ciudad',
+            'telefono': 'Teléfono',
+            'email': 'Correo',
+        }
+        widgets = {
+            'razon_social': forms.TextInput(attrs={'placeholder': 'Ej. Distribuidora Mascomida S.A.'}),
+            'ruc': forms.TextInput(attrs={'placeholder': 'RUC'}),
+            'telefono': forms.TextInput(attrs={'placeholder': '+593 99 ...'}),
+            'email': forms.EmailInput(attrs={'placeholder': 'correo@proveedor.com'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        ciudades = list(TmPCiudad.objects.select_related('id_provincia').order_by('nombre_ciudad'))
+        provincia_map = {str(c.id_ciudad): c.id_provincia_id for c in ciudades if c.id_provincia_id}
+
+        self.fields['id_ciudad'].widget = CiudadSelect(provincia_map=provincia_map)
+        self.fields['id_ciudad'].queryset = TmPCiudad.objects.order_by('nombre_ciudad')
+        self.fields['id_ciudad'].required = False
+        self.fields['razon_social'].required = True
 
         if self.instance and self.instance.pk and self.instance.id_ciudad_id:
             ciudad_actual = next((c for c in ciudades if c.id_ciudad == self.instance.id_ciudad_id), None)
