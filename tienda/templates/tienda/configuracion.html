@@ -1,0 +1,44 @@
+{% extends 'tienda/base.html' %}
+
+{% block title %}Configuración · PetGroom{% endblock %}
+{% block crumb %}Inicio / Configuración{% endblock %}
+{% block heading %}Configuración del Sistema{% endblock %}
+
+{% block content %}
+<div style="font-size:.9rem;color:#9aaba7;margin-bottom:22px;">Selecciona el módulo de mantenimiento que deseas administrar.</div>
+
+<div class="row g-3">
+  <div class="col-md-6 col-lg-3">
+    <div class="gr-card" style="padding:26px;height:100%;">
+      <div class="gr-avatar" style="background:#3aa89a;width:52px;height:52px;font-size:1.4rem;margin-bottom:14px;"><i class="bi bi-people-fill"></i></div>
+      <div class="gr-h" style="font-size:1.1rem;margin-bottom:6px;">Clientes</div>
+      <div style="font-size:.85rem;color:#9aaba7;margin-bottom:18px;">Administra la información de los clientes de la tienda.</div>
+      <a href="{% url 'tienda:clientes' %}" class="btn btn-brand" style="border-radius:12px;font-weight:700;">Gestionar</a>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <div class="gr-card" style="padding:26px;height:100%;">
+      <div class="gr-avatar" style="background:#e08a5b;width:52px;height:52px;font-size:1.4rem;margin-bottom:14px;"><i class="bi bi-heart-fill"></i></div>
+      <div class="gr-h" style="font-size:1.1rem;margin-bottom:6px;">Mascotas</div>
+      <div style="font-size:.85rem;color:#9aaba7;margin-bottom:18px;">Administra las mascotas registradas y sus dueños.</div>
+      <a href="{% url 'tienda:mascotas' %}" class="btn btn-brand" style="border-radius:12px;font-weight:700;">Gestionar</a>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <div class="gr-card" style="padding:26px;height:100%;">
+      <div class="gr-avatar" style="background:#c9a85b;width:52px;height:52px;font-size:1.4rem;margin-bottom:14px;"><i class="bi bi-box-seam-fill"></i></div>
+      <div class="gr-h" style="font-size:1.1rem;margin-bottom:6px;">Productos</div>
+      <div style="font-size:.85rem;color:#9aaba7;margin-bottom:18px;">Administra el catálogo de productos, precios y stock.</div>
+      <a href="{% url 'tienda:productos' %}" class="btn btn-brand" style="border-radius:12px;font-weight:700;">Gestionar</a>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <div class="gr-card" style="padding:26px;height:100%;">
+      <div class="gr-avatar" style="background:#5b8fd8;width:52px;height:52px;font-size:1.4rem;margin-bottom:14px;"><i class="bi bi-truck"></i></div>
+      <div class="gr-h" style="font-size:1.1rem;margin-bottom:6px;">Proveedores</div>
+      <div style="font-size:.85rem;color:#9aaba7;margin-bottom:18px;">Administra los proveedores de la tienda.</div>
+      <a href="{% url 'tienda:proveedores' %}" class="btn btn-brand" style="border-radius:12px;font-weight:700;">Gestionar</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

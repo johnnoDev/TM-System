@@ -153,6 +153,37 @@ def _iniciales(nombre):
     return (partes[0][0] + partes[1][0]).upper()
 
 
+def dashboard(request):
+    hoy = timezone.localdate()
+
+    ventas_hoy = (
+        TmTFactura.objects
+        .filter(fecha_emision__date=hoy)
+        .exclude(estado='Anulada')
+        .aggregate(total=Sum('total'))['total'] or 0
+    )
+    facturas_hoy = (
+        TmTFactura.objects
+        .filter(fecha_emision__date=hoy)
+        .exclude(estado='Anulada')
+        .count()
+    )
+    reservas_hoy = TmTReserva.objects.filter(fecha_hora_reserva__date=hoy).count()
+    productos_stock_bajo = TmMProducto.objects.filter(stock_actual__lte=F('stock_minimo')).count()
+
+    return render(request, 'tienda/dashboard.html', {
+        'ventas_hoy': ventas_hoy,
+        'facturas_hoy': facturas_hoy,
+        'reservas_hoy': reservas_hoy,
+        'productos_stock_bajo': productos_stock_bajo,
+        'active_view': 'dashboard',
+    })
+
+
+def configuracion(request):
+    return render(request, 'tienda/configuracion.html', {'active_view': 'configuracion'})
+
+
 def clientes(request):
     if request.method == 'POST':
         form = ClienteForm(request.POST)

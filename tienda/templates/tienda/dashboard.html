@@ -1,0 +1,65 @@
+{% extends 'tienda/base.html' %}
+
+{% block title %}Inicio · PetGroom{% endblock %}
+{% block crumb %}Inicio{% endblock %}
+{% block heading %}Bienvenido{% endblock %}
+
+{% block content %}
+<div class="row g-3" style="margin-bottom:26px;">
+  <div class="col-md-3 col-6">
+    <div class="gr-card" style="padding:20px;">
+      <div style="font-size:.78rem;color:#9aaba7;font-weight:700;margin-bottom:6px;">Ventas de hoy</div>
+      <div class="gr-h" style="font-size:1.5rem;color:var(--brand-d);">${{ ventas_hoy }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="gr-card" style="padding:20px;">
+      <div style="font-size:.78rem;color:#9aaba7;font-weight:700;margin-bottom:6px;">Facturas emitidas hoy</div>
+      <div class="gr-h" style="font-size:1.5rem;">{{ facturas_hoy }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="gr-card" style="padding:20px;">
+      <div style="font-size:.78rem;color:#9aaba7;font-weight:700;margin-bottom:6px;">Reservas de hoy</div>
+      <div class="gr-h" style="font-size:1.5rem;">{{ reservas_hoy }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="gr-card" style="padding:20px;">
+      <div style="font-size:.78rem;color:#9aaba7;font-weight:700;margin-bottom:6px;">Productos con stock bajo</div>
+      <div class="gr-h" style="font-size:1.5rem;color:{% if productos_stock_bajo %}#cf4646{% else %}var(--ink){% endif %};">{{ productos_stock_bajo }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6 col-lg-3">
+    <a href="{% url 'tienda:venta' %}" class="gr-card" style="display:block;padding:26px;text-decoration:none;height:100%;">
+      <div class="gr-avatar" style="background:var(--brand);width:52px;height:52px;font-size:1.4rem;margin-bottom:14px;"><i class="bi bi-cash-coin"></i></div>
+      <div class="gr-h" style="font-size:1.15rem;margin-bottom:6px;">Venta</div>
+      <div style="font-size:.85rem;color:#9aaba7;">Registra reservas de grooming y venta de productos.</div>
+    </a>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <a href="{% url 'tienda:compras' %}" class="gr-card" style="display:block;padding:26px;text-decoration:none;height:100%;">
+      <div class="gr-avatar" style="background:#5b8fd8;width:52px;height:52px;font-size:1.4rem;margin-bottom:14px;"><i class="bi bi-bag-plus"></i></div>
+      <div class="gr-h" style="font-size:1.15rem;margin-bottom:6px;">Compras</div>
+      <div style="font-size:.85rem;color:#9aaba7;">Registra compras a proveedores y actualiza el stock.</div>
+    </a>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <a href="{% url 'tienda:reportes' %}" class="gr-card" style="display:block;padding:26px;text-decoration:none;height:100%;">
+      <div class="gr-avatar" style="background:#d98a5b;width:52px;height:52px;font-size:1.4rem;margin-bottom:14px;"><i class="bi bi-graph-up-arrow"></i></div>
+      <div class="gr-h" style="font-size:1.15rem;margin-bottom:6px;">Reportes</div>
+      <div style="font-size:.85rem;color:#9aaba7;">Consulta informes de ventas, servicios y productos.</div>
+    </a>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <a href="{% url 'tienda:configuracion' %}" class="gr-card" style="display:block;padding:26px;text-decoration:none;height:100%;">
+      <div class="gr-avatar" style="background:#9b6cc9;width:52px;height:52px;font-size:1.4rem;margin-bottom:14px;"><i class="bi bi-gear-fill"></i></div>
+      <div class="gr-h" style="font-size:1.15rem;margin-bottom:6px;">Configuración</div>
+      <div style="font-size:.85rem;color:#9aaba7;">Administra clientes, mascotas, productos y proveedores.</div>
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -1,14 +1,17 @@
 {% extends 'tienda/base.html' %}
 
 {% block title %}Clientes · PetGroom{% endblock %}
-{% block crumb %}Inicio / Clientes{% endblock %}
+{% block crumb %}Inicio / Configuración / Clientes{% endblock %}
 {% block heading %}Clientes{% endblock %}
 
 {% block topbar_extra %}
-<form method="get" style="position:relative;">
-  <i class="bi bi-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#a9b8b5;"></i>
-  <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Buscar cliente…" style="padding-left:40px;width:230px;background:#fff;border-color:#e6efec;">
-</form>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+  <a href="{% url 'tienda:configuracion' %}" class="btn btn-light" style="border-radius:12px;padding:9px 18px;font-weight:700;border:1px solid #e6efec;"><i class="bi bi-arrow-left" style="margin-right:6px;"></i>Configuración</a>
+  <form method="get" style="position:relative;">
+    <i class="bi bi-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#a9b8b5;"></i>
+    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Buscar cliente…" style="padding-left:40px;width:230px;background:#fff;border-color:#e6efec;">
+  </form>
+</div>
 {% endblock %}
 
 {% block content %}

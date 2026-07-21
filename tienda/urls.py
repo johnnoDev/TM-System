@@ -6,7 +6,9 @@ from . import views
 app_name = 'tienda'
 
 urlpatterns = [
-    path('', RedirectView.as_view(pattern_name='tienda:venta'), name='home'),
+    path('', RedirectView.as_view(pattern_name='tienda:dashboard'), name='home'),
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('configuracion/', views.configuracion, name='configuracion'),
     path('clientes/', views.clientes, name='clientes'),
     path('clientes/<int:pk>/editar/', views.cliente_editar, name='cliente_editar'),
     path('clientes/<int:pk>/eliminar/', views.cliente_eliminar, name='cliente_eliminar'),
