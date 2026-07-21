@@ -328,6 +328,15 @@ class UsuarioForm(forms.ModelForm):
             else:
                 field.widget.attrs['class'] = (css + ' form-control').strip()
 
+    def clean_nombre_usuario(self):
+        nombre_usuario = self.cleaned_data['nombre_usuario'].strip()
+        qs = TmMUsuario.objects.filter(nombre_usuario__iexact=nombre_usuario)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError('Ya existe un usuario con ese nombre.')
+        return nombre_usuario
+
     def save(self, commit=True):
         obj = super().save(commit=False)
         password = self.cleaned_data.get('password')

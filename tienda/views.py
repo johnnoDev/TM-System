@@ -43,6 +43,15 @@ def _rango_periodo(periodo, hoy):
     return inicio, fin
 
 
+def _obtener_o_none(queryset, pk):
+    if not pk:
+        return None
+    try:
+        return queryset.filter(pk=pk).first()
+    except (ValueError, TypeError):
+        return None
+
+
 def _precio_servicio(servicio):
     if servicio.id_tarifa_servicio_id and servicio.id_tarifa_servicio.precio is not None:
         return servicio.id_tarifa_servicio.precio
@@ -61,8 +70,8 @@ def _parse_fecha_local(valor):
 def _registrar_venta(usuario, cliente, tipo_pago, fecha_servicio, srv_mascotas, srv_servicios, prod_ids, prod_cantidades):
     items_servicio = []
     for mascota_id, servicio_id in zip(srv_mascotas, srv_servicios):
-        mascota = TmMMascota.objects.filter(pk=mascota_id).first()
-        servicio = TmMServicio.objects.select_related('id_tarifa_servicio').filter(pk=servicio_id).first()
+        mascota = _obtener_o_none(TmMMascota.objects, mascota_id)
+        servicio = _obtener_o_none(TmMServicio.objects.select_related('id_tarifa_servicio'), servicio_id)
         if mascota is None or servicio is None:
             raise ValueError('Uno de los servicios del carrito ya no existe.')
         if mascota.id_cliente_id != cliente.id_cliente:
@@ -71,7 +80,7 @@ def _registrar_venta(usuario, cliente, tipo_pago, fecha_servicio, srv_mascotas, 
 
     items_producto = []
     for producto_id, cantidad_raw in zip(prod_ids, prod_cantidades):
-        producto = TmMProducto.objects.filter(pk=producto_id).first()
+        producto = _obtener_o_none(TmMProducto.objects, producto_id)
         if producto is None:
             raise ValueError('Uno de los productos del carrito ya no existe.')
         try:
@@ -497,9 +506,12 @@ def usuarios(request):
     if request.method == 'POST':
         form = UsuarioForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Usuario guardado correctamente.')
-            return redirect('tienda:usuarios')
+            try:
+                form.save()
+                messages.success(request, 'Usuario guardado correctamente.')
+                return redirect('tienda:usuarios')
+            except DatabaseError:
+                messages.error(request, 'Ya existe un usuario con ese nombre.')
     else:
         form = UsuarioForm()
 
@@ -518,9 +530,12 @@ def usuario_editar(request, pk):
     if request.method == 'POST':
         form = UsuarioForm(request.POST, instance=usuario)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Usuario actualizado correctamente.')
-            return redirect('tienda:usuarios')
+            try:
+                form.save()
+                messages.success(request, 'Usuario actualizado correctamente.')
+                return redirect('tienda:usuarios')
+            except DatabaseError:
+                messages.error(request, 'Ya existe un usuario con ese nombre.')
     else:
         form = UsuarioForm(instance=usuario)
 
@@ -619,7 +634,7 @@ def horario_eliminar(request, pk):
 
 def compras(request):
     if request.method == 'POST':
-        proveedor = TmMProveedor.objects.filter(pk=request.POST.get('proveedor')).first()
+        proveedor = _obtener_o_none(TmMProveedor.objects, request.POST.get('proveedor'))
         prod_ids = request.POST.getlist('prod_id')
         prod_cantidades = request.POST.getlist('prod_cantidad')
         prod_costos = request.POST.getlist('prod_costo')
@@ -639,7 +654,7 @@ def compras(request):
                 )
                 total = 0
                 for producto_id, cantidad_raw, costo_raw in zip(prod_ids, prod_cantidades, prod_costos):
-                    producto = TmMProducto.objects.filter(pk=producto_id).first()
+                    producto = _obtener_o_none(TmMProducto.objects, producto_id)
                     if producto is None:
                         raise ValueError('Uno de los productos del carrito ya no existe.')
                     try:
@@ -703,8 +718,8 @@ def compra_eliminar(request, pk):
 
 def venta(request):
     if request.method == 'POST':
-        cliente = TmMCliente.objects.filter(pk=request.POST.get('cliente')).first()
-        tipo_pago = TmPTipopago.objects.filter(pk=request.POST.get('id_tipo_pago')).first()
+        cliente = _obtener_o_none(TmMCliente.objects, request.POST.get('cliente'))
+        tipo_pago = _obtener_o_none(TmPTipopago.objects, request.POST.get('id_tipo_pago'))
         fecha_servicio = request.POST.get('fecha_servicio')
         srv_mascotas = request.POST.getlist('srv_mascota')
         srv_servicios = request.POST.getlist('srv_servicio')
